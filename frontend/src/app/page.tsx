@@ -1,18 +1,28 @@
 'use client';
 
-import { DetailPanel } from '@/components/sections/detail-panel';
 import { Sidebar } from '@/components/sections/sidebar';
 import { TestsPanel } from '@/components/sections/test-panel';
 import { TopBar } from '@/components/sections/top-bar';
 import { useEffect, useState } from 'react';
 
+import { DetailPanel } from '@/components/sections/detail-panel';
+import { RunAllPanel } from '@/components/sections/run-all-panel';
 import { useGetCollectionsQuery } from '@/store/features/collections/api-slice';
 import { Collection } from '@/store/features/collections/type';
+import {
+	useRunCollectionMutation,
+	useRunTestCaseMutation,
+} from '@/store/features/test-case/api-slice';
 import { iTestCase } from '@/store/features/test-case/type';
+import { toast } from 'sonner';
 
 export default function Home() {
+	type ViewMode = 'idle' | 'single' | 'all';
+
+	const [viewMode, setViewMode] = useState<ViewMode>('idle');
 	// ─── API ────────────────────────────────────────────────────────────────
 	const { data, isLoading } = useGetCollectionsQuery();
+	const [runMutation, { isLoading: isRunning }] = useRunCollectionMutation();
 	const collections: Collection[] = data?.data ?? [];
 
 	// ─── State ──────────────────────────────────────────────────────────────
@@ -31,6 +41,44 @@ export default function Home() {
 		}
 	}, [collections, selectedColId]);
 
+	// ─── Run Test Case ──────────────────────────────────────────────────────────
+	const [mutation, response] = useRunTestCaseMutation();
+
+	const handleTestCaseRun = async (colId: string, testId: string) => {
+		setSelectedTestId(testId);
+		if (response.isLoading) return;
+
+		setViewMode('single');
+
+		try {
+			await mutation({ colId, testId }).unwrap();
+		} catch {
+			toast.error('Failed to Run');
+		}
+	};
+
+	// add state
+	const [colRunResult, setColRunResult] = useState<any>(null);
+
+	const handleRunAll = async () => {
+		if (!selectedColId || isRunning) return;
+
+		setViewMode('all');
+
+		try {
+			const res = await runMutation(selectedColId).unwrap();
+			setColRunResult(res.data);
+		} catch {
+			toast.error('Failed to run collection');
+		}
+	};
+
+	useEffect(() => {
+		response.reset();
+		// setViewMode('idle');
+		setColRunResult(null);
+	}, [selectedTestId, selectedColId]);
+
 	// ───   data ─────────────────────────────────────────────────────
 	const selectedCollection: Collection | null =
 		collections.find((c) => c.id === selectedColId) ?? null;
@@ -38,23 +86,10 @@ export default function Home() {
 	const selectedTest: iTestCase | null =
 		selectedCollection?.testCases.find((t) => t.id === selectedTestId) ?? null;
 
-	// ─── Handlers (UI only for now) ─────────────────────────────────────────
-	const handleCreateCollection = () => {
-		console.warn('Hook up createCollection mutation');
+	const handleSelectId = (id: string) => {
+		setSelectedTestId(id);
+		setViewMode('single');
 	};
-
-	const handleDeleteCollection = (id: string) => {
-		console.warn('Hook up deleteCollection mutation', id);
-	};
-
-	const handleCreateTest = () => {
-		console.warn('Hook up createTestCase mutation');
-	};
-
-	const handleDeleteTest = (id: string) => {
-		console.warn('Hook up deleteTestCase mutation', id);
-	};
-
 	// ─── UI ─────────────────────────────────────────────────────────────────
 	return (
 		<div className="min-h-screen bg-zinc-950 text-zinc-100 p-3 font-sans">
@@ -74,22 +109,36 @@ export default function Home() {
 								setSelectedColId(id);
 								setSelectedTestId('');
 							}}
-							onDelete={handleDeleteCollection}
-							onCreate={handleCreateCollection}
 						/>
 					)}
 
 					<TestsPanel
 						collection={selectedCollection}
 						selectedTestId={selectedTestId}
-						onSelect={setSelectedTestId}
-						onDelete={handleDeleteTest}
-						onCreate={handleCreateTest}
-						onRunAll={() => {}}
-						onRun={() => {}}
+						onSelect={handleSelectId}
+						onRunAll={handleRunAll}
+						onRun={handleTestCaseRun}
 					/>
 
-					<DetailPanel test={selectedTest} collection={selectedCollection} />
+					{viewMode === 'single' && (
+						<DetailPanel
+							test={selectedTest}
+							collection={selectedCollection}
+							mutation={mutation}
+							response={response}
+						/>
+					)}
+
+					{viewMode === 'all' && (
+						<RunAllPanel
+							isRunning={isRunning}
+							result={colRunResult}
+							onClose={() => {
+								setColRunResult(null);
+								setViewMode('idle');
+							}}
+						/>
+					)}
 				</div>
 			</div>
 		</div>

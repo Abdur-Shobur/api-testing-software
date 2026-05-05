@@ -21,8 +21,6 @@ export function TestCaseRun({
 
 		try {
 			const response = await mutation({ colId, testId }).unwrap();
-
-			console.log(response);
 		} catch (err) {
 			toast.error('Failed to Run');
 		} finally {

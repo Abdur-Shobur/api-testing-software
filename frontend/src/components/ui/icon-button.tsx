@@ -7,7 +7,7 @@ export function IconBtn({
 	title,
 }: {
 	children: React.ReactNode;
-	onClick?: () => void;
+	onClick?: (e?: React.MouseEvent<HTMLButtonElement>) => void;
 	variant?: 'default' | 'danger';
 	title?: string;
 }) {

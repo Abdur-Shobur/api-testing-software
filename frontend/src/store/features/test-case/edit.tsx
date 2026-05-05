@@ -27,9 +27,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-import { METHODS } from '@/type';
 import { ArrowDown, ArrowUp, BookCheck, FileText } from 'lucide-react';
-import { useCreateTestCaseMutation } from './api-slice';
 const methodColor: Record<string, string> = {
 	GET: '#4fffb0',
 	POST: '#00d4ff',
@@ -91,74 +89,119 @@ const schema = z.object({
 	}),
 });
 
-type FormType = z.infer<typeof schema>;
+import { iState, METHODS } from '@/type';
+import { useEffect } from 'react';
+import { useUpdateTestCaseMutation } from './api-slice';
+import { iTestCase } from './type';
 
-// ==================
-// ✅ Defaults
-// ==================
-const defaultValues: FormType = {
-	name: '',
-	description: '',
-	request: {
-		method: 'GET',
-		url: '',
-		timeoutMs: 10000,
-		headers: [],
-		queryParams: [],
-		body: { type: 'none', content: '' },
-	},
-	expectedResponse: {
-		status: 200,
-		headers: [],
-		body: { mode: 'contains', content: '{}' },
-	},
-};
+export type ZodType = z.infer<typeof schema>;
 
-// ==================
-// ✅ Component
-// ==================
-export function TestCaseCreate({
+export function Edit({
+	setOpen,
+	data,
 	colId,
-	onClose,
 }: {
+	setOpen?: iState<boolean>;
+	data: iTestCase;
 	colId: string;
-	onClose?: () => void;
 }) {
-	const [createTest, { isLoading }] = useCreateTestCaseMutation();
+	const [update, { isLoading }] = useUpdateTestCaseMutation();
 	const [tab, setTab] = useState<'request' | 'expected'>('request');
 	const [mode, setMode] = useState<'params' | 'headers' | 'body'>('params');
 
-	const form = useForm<FormType>({
+	const form = useForm<ZodType>({
 		resolver: zodResolver(schema),
-		defaultValues,
-	});
+		defaultValues: {
+			name: data.name ?? '',
+			description: data.description ?? '',
 
+			request: {
+				method: data.request?.method ?? 'GET',
+				url: data.request?.url ?? '',
+				timeoutMs: data.request?.timeoutMs ?? 10000,
+				headers: data.request?.headers ?? [],
+				queryParams: data.request?.queryParams ?? [],
+				body: {
+					type: data.request?.body?.type ?? 'none',
+					content: data.request?.body?.content ?? '',
+				},
+			},
+
+			expectedResponse: {
+				status: data.expectedResponse?.status ?? 200,
+				headers: data.expectedResponse?.headers ?? [],
+				body: {
+					mode: (data.expectedResponse?.body?.mode as any) ?? 'contains',
+					content: data.expectedResponse?.body?.content ?? '{}',
+				},
+			},
+		},
+	});
+	const methodWatch = form.watch('request.method');
 	const reqBodyTab = form.watch('request.body.type'); // reqBodyTab, setReqBodyTab
 	const bodyTab = form.watch('expectedResponse.body.mode'); // bodyTab, setBodyTab
 
-	// ==================
-	// ✅ Submit
-	// ==================
-	const onSubmit = async (data: FormType) => {
+	useEffect(() => {
+		form.reset({
+			name: data.name ?? '',
+			description: data.description ?? '',
+
+			request: {
+				method: data.request?.method ?? 'GET',
+				url: data.request?.url ?? '',
+				timeoutMs: data.request?.timeoutMs ?? 10000,
+				headers: data.request?.headers ?? [],
+				queryParams: data.request?.queryParams ?? [],
+				body: {
+					type: data.request?.body?.type ?? 'none',
+					content: data.request?.body?.content ?? '',
+				},
+			},
+
+			expectedResponse: {
+				status: data.expectedResponse?.status ?? 200,
+				headers: data.expectedResponse?.headers ?? [],
+				body: {
+					mode: (data.expectedResponse?.body?.mode as any) ?? 'contains',
+					content: data.expectedResponse?.body?.content ?? '{}',
+				},
+			},
+		});
+	}, [data]);
+
+	const onSubmit = async (iData: ZodType) => {
+		if (!colId) {
+			toast.error('Collection ID not found');
+			return;
+		}
+		if (!data.id) {
+			toast.error('Test ID not found');
+			return;
+		}
 		try {
-			const res = await createTest({
+			const response = await update({
 				colId,
-				body: data,
+				testId: data.id,
+				body: iData,
 			}).unwrap();
 
-			if (res) {
-				toast.success('Test case created');
-				onClose?.();
+			if (response.success) {
+				if (setOpen) {
+					setOpen(false);
+				}
+				toast.success('Update success');
+			} else {
+				toast.error('Update failed');
 			}
-		} catch (err) {
-			toast.error('Failed to create test case');
+		} catch (error: any) {
+			if (error) {
+				toast.error('Update failed');
+			} else {
+				toast.error('Something went wrong');
+			}
 		}
 	};
-	const methodWatch = form.watch('request.method');
 
-	// ==================
-	// ✅ UI
-	// ==================
 	return (
 		<Form {...form}>
 			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -509,7 +552,7 @@ export function TestCaseCreate({
 				{/* ================= ACTIONS ================= */}
 				<DialogFooter>
 					<Button type="submit" disabled={isLoading}>
-						{isLoading ? 'Creating...' : 'Create Test Case'}
+						{isLoading ? 'Updating...' : 'Update Test Case'}
 					</Button>
 				</DialogFooter>
 			</form>

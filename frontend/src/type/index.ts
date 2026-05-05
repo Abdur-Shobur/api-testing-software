@@ -1,9 +1,9 @@
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 import { Dispatch, SetStateAction } from 'react';
-
-export type Method = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-export type Status = 'pass' | 'fail' | 'pending';
+export const METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'] as const;
+export type Method = (typeof METHODS)[number];
+export type Status = 'pass' | 'fail' | 'pending' | 'error';
 export type iState<T> = Dispatch<SetStateAction<T>>;
 export type AssertionStatus = 'pass' | 'fail' | 'skip';
 

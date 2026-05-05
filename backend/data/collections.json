@@ -44,7 +44,7 @@
       },
       {
         "id": "3ee02aeb-9900-4037-9370-9d506f2ace4c",
-        "name": "New Test",
+        "name": "New Update",
         "description": "",
         "request": {
           "method": "GET",
@@ -72,22 +72,25 @@
           }
         },
         "createdAt": "2026-05-02T14:20:34.256Z",
-        "updatedAt": "2026-05-02T14:20:34.256Z"
-      },
+        "updatedAt": "2026-05-03T02:08:56.663Z"
+      }
+    ],
+    "createdAt": "2026-05-02T14:08:29.342Z",
+    "updatedAt": "2026-05-03T02:08:56.663Z"
+  },
+  {
+    "id": "fa2556cc-766e-40a7-8431-8f112767c8d0",
+    "name": "sdfsdf",
+    "description": "",
+    "testCases": [
       {
-        "id": "5003e198-a3c8-4a44-8a3d-d54e03b4bf70",
-        "name": "New1",
+        "id": "6f46cfb7-597c-4232-b54a-78f4790caf8f",
+        "name": "Test",
         "description": "",
         "request": {
           "method": "GET",
-          "url": "http://localhost:8000/api/view-category",
-          "headers": [
-            {
-              "key": "authorization",
-              "value": "Bearer 3244|2vBghthDs31cG3SZvbmEumrKFOpSnJGk58sga3qH3177be22",
-              "enabled": true
-            }
-          ],
+          "url": "http://localhost:3000/",
+          "headers": [],
           "queryParams": [],
           "body": {
             "type": "none",
@@ -100,14 +103,14 @@
           "headers": [],
           "body": {
             "mode": "contains",
-            "content": "{\n\t\"data\": {\n\t\t\"status\": 200,\n\t\t\"category\": {\n\t\t\t\"current_page\": 1,\n\t\t\t\"data\": [\n\t\t\t\t{\n\t\t\t\t\t\"id\": 1,\n\t\t\t\t\t\"name\": \"Category 1\",\n\t\t\t\t\t\"slug\": \"category-1\",\n\t\t\t\t\t\"description\": null,\n\t\t\t\t\t\"meta_title\": null,\n\t\t\t\t\t\"meta_keywords\": null,\n\t\t\t\t\t\"meta_description\": null,\n\t\t\t\t\t\"status\": \"active\",\n\t\t\t\t\t\"image\": \"uploads/category/1767286607.jpg\",\n\t\t\t\t\t\"tags\": null,\n\t\t\t\t\t\"created_at\": \"2026-01-01T16:56:47.000000Z\",\n\t\t\t\t\t\"updated_at\": \"2026-01-01T16:56:47.000000Z\",\n\t\t\t\t\t\"deleted_at\": null\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"first_page_url\": \"http://localhost:8000/api/view-category?page=1\",\n\t\t\t\"from\": 1,\n\t\t\t\"last_page\": 1,\n\t\t\t\"last_page_url\": \"http://localhost:8000/api/view-category?page=1\",\n\t\t\t\"links\": [\n\t\t\t\t{\n\t\t\t\t\t\"url\": null,\n\t\t\t\t\t\"label\": \"&laquo; Previous\",\n\t\t\t\t\t\"active\": false\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"url\": \"http://localhost:8000/api/view-category?page=1\",\n\t\t\t\t\t\"label\": \"1\",\n\t\t\t\t\t\"active\": true\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\t\"url\": null,\n\t\t\t\t\t\"label\": \"Next &raquo;\",\n\t\t\t\t\t\"active\": false\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"next_page_url\": null,\n\t\t\t\"path\": \"http://localhost:8000/api/view-category\",\n\t\t\t\"per_page\": 10,\n\t\t\t\"prev_page_url\": null,\n\t\t\t\"to\": 1,\n\t\t\t\"total\": 1\n\t\t}\n\t}\n}\n"
+            "content": "{}"
           }
         },
-        "createdAt": "2026-05-02T14:23:36.669Z",
-        "updatedAt": "2026-05-02T14:23:36.669Z"
+        "createdAt": "2026-05-03T01:03:47.176Z",
+        "updatedAt": "2026-05-03T01:03:47.176Z"
       }
     ],
-    "createdAt": "2026-05-02T14:08:29.342Z",
-    "updatedAt": "2026-05-02T15:15:09.882Z"
+    "createdAt": "2026-05-03T00:34:49.197Z",
+    "updatedAt": "2026-05-03T01:03:47.176Z"
   }
 ]

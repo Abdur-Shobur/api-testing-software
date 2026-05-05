@@ -8,14 +8,10 @@ export function Sidebar({
 	collections,
 	selectedId,
 	onSelect,
-	onDelete,
-	onCreate,
 }: {
 	collections: Collection[];
 	selectedId: string;
 	onSelect: (id: string) => void;
-	onDelete: (id: string) => void;
-	onCreate: () => void;
 }) {
 	return (
 		<aside className="flex flex-col border-r border-zinc-800 bg-zinc-900/50 w-56 shrink-0">

@@ -17,29 +17,6 @@ export interface TestCase {
 	lastResult?: RunResult;
 }
 
-export interface TestCaseResult {
-	testCaseId: string;
-	testCaseName: string;
-	status: Status;
-	durationMs: number;
-	request: { method: string; url: string };
-	actual: {
-		status: number;
-		headers: Record<string, string>;
-		body: unknown;
-	} | null;
-	assertions: AssertionResult[];
-	error?: string;
-}
-
-export interface AssertionResult {
-	field: string;
-	status: AssertionStatus;
-	expected: unknown;
-	actual: unknown;
-	message: string;
-}
-
 export interface AssertionResult {
 	field: string;
 	status: AssertionStatus;
@@ -76,3 +53,47 @@ export type iTestCase = {
 	createdAt: string;
 	updatedAt: string;
 };
+export type iTestCaseError = {
+	testCaseId: string;
+	testCaseName: string;
+	status: Status;
+	durationMs: number;
+	request: {
+		method: string;
+		url: string;
+	};
+	actual: {
+		status: number;
+		headers: Record<string, string>;
+		body: unknown;
+	} | null;
+	assertions: AssertionResult[];
+	error: string;
+};
+
+export interface TestCaseResult {
+	testCaseId: string;
+	testCaseName: string;
+	status: Status;
+	durationMs: number;
+	request: { method: Method; url: string };
+	actual: {
+		status: number;
+		headers: Record<string, string>;
+		body: unknown;
+	} | null;
+	assertions: AssertionResult[];
+	error?: string;
+}
+
+export interface CollectionRunResult {
+	collectionId: string;
+	collectionName: string;
+	runAt: string;
+	totalTests: number;
+	passed: number;
+	failed: number;
+	errored: number;
+	durationMs: number;
+	results: TestCaseResult[];
+}

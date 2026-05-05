@@ -252,7 +252,11 @@ export async function runTestCase(testCase: TestCase): Promise<TestCaseResult> {
 			validateStatus: () => true, // never throw on HTTP error status
 		});
 	} catch (err: unknown) {
-		errorMessage = err instanceof Error ? err.message : String(err);
+		if ((err as { code: string })?.code === 'ECONNREFUSED') {
+			errorMessage = 'Connection refused';
+		} else {
+			errorMessage = err instanceof Error ? err.message : String(err);
+		}
 	}
 
 	const durationMs = Date.now() - startTime;

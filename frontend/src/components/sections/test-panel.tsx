@@ -1,7 +1,9 @@
 import { cn } from '@/lib/utils';
 import { Collection } from '@/store/features/collections/type';
 import { TestCaseCreateModal } from '@/store/features/test-case/create-modal';
-import { MoreHorizontal, Pencil, Play, Terminal, Trash2 } from 'lucide-react';
+import { TestCaseDelete } from '@/store/features/test-case/delete';
+import { TestCaseEditModal } from '@/store/features/test-case/edit-modal';
+import { Pencil, Play, Terminal } from 'lucide-react';
 import { IconBtn } from '../ui/icon-button';
 import { Btn } from '../ui/main-btn';
 import { MethodBadge } from '../ui/method-badge';
@@ -10,20 +12,15 @@ export function TestsPanel({
 	collection,
 	selectedTestId,
 	onSelect,
-	onDelete,
-	onCreate,
 	onRunAll,
 	onRun,
 }: {
 	collection: Collection | null;
 	selectedTestId: string;
 	onSelect: (id: string) => void;
-	onDelete: (id: string) => void;
-	onCreate: () => void;
 	onRunAll: () => void;
-	onRun: (id: string) => void;
+	onRun: (collectionID: string, testCaseID: string) => void;
 }) {
-	console.log(collection);
 	if (!collection) {
 		return (
 			<div className="flex-1 flex items-center justify-center text-zinc-600 text-sm border-r border-zinc-800">
@@ -97,19 +94,32 @@ export function TestsPanel({
 									: 'opacity-0 group-hover:opacity-100',
 							)}
 						>
-							<IconBtn title="Run">
+							<IconBtn
+								onClick={(e) => {
+									if (e) {
+										e.stopPropagation();
+										onRun(collection.id, test.id);
+									}
+								}}
+								title="Run"
+							>
 								<Play className="w-3.5 h-3.5" />
 							</IconBtn>
-							<IconBtn title="Edit">
-								<Pencil className="w-3.5 h-3.5" />
-							</IconBtn>
-							<IconBtn title="More">
+
+							<TestCaseEditModal data={test} colId={collection.id}>
+								<IconBtn title="Edit">
+									<Pencil className="w-3.5 h-3.5" />
+								</IconBtn>
+							</TestCaseEditModal>
+
+							{/* <IconBtn title="More">
 								<MoreHorizontal className="w-3.5 h-3.5" />
-							</IconBtn>
+							</IconBtn> */}
 							<div className="flex-1" />
-							<IconBtn variant="danger" title="Delete">
+							<TestCaseDelete colId={collection.id} testId={test.id} />
+							{/* <IconBtn variant="danger" title="Delete">
 								<Trash2 className="w-3.5 h-3.5" />
-							</IconBtn>
+							</IconBtn> */}
 						</div>
 					</div>
 				))}

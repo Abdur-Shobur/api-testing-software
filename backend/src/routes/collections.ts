@@ -228,7 +228,7 @@ collectionsRouter.patch(
 		col.testCases[idx] = updated;
 		col.updatedAt = now();
 		await saveCollection(col);
-		res.json({ data: updated });
+		res.json({ data: updated, success: true });
 	}),
 );
 
@@ -249,6 +249,8 @@ collectionsRouter.delete(
 		}
 		col.updatedAt = now();
 		await saveCollection(col);
-		res.status(204).send();
+		res
+			.status(200)
+			.json({ message: 'Delete Success', success: true, status: 200 });
 	}),
 );
