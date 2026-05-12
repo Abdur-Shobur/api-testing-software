@@ -1,13 +1,22 @@
 import { cn } from '@/lib/utils';
+import { DocsEditor } from '@/components/DocsEditor';
+import { TestHistory } from '@/components/TestHistory';
+import {
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Collection } from '@/store/features/collections/type';
 import { TestCaseEditModal } from '@/store/features/test-case/edit-modal';
 import {
+	AssertionResult,
 	iTestCase,
 	iTestCaseError,
 	TestCaseResult,
 } from '@/store/features/test-case/type';
 import { DetailTab } from '@/type';
-import { CheckCircle2, Clock, Pencil, Play, XCircle, Zap } from 'lucide-react';
+import { Clock, Pencil, Play, Zap } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Chip } from '../ui/chip';
@@ -16,6 +25,60 @@ import { MethodBadge } from '../ui/method-badge';
 import { SectionLabel } from '../ui/section-label';
 import { Skeleton } from '../ui/skeleton';
 import { StatusBadge } from '../ui/status-badge';
+
+function AssertionAccordionItem({ a, index }: { a: AssertionResult; index: number }) {
+	const pass = a.status === 'pass';
+	const skip = a.status === 'skip';
+	return (
+		<AccordionItem
+			value={`assertion-${index}`}
+			className="bg-zinc-950/50 border border-zinc-800 rounded-lg overflow-hidden"
+		>
+			<AccordionTrigger className="flex items-center gap-3 px-3 py-2.5 hover:no-underline hover:bg-zinc-800/50 transition-colors">
+				<div
+					className={cn(
+						'mt-0.5 w-2 h-2 rounded-full shrink-0',
+						skip ? 'bg-zinc-500' : pass ? 'bg-emerald-400' : 'bg-rose-400',
+					)}
+				/>
+				<div className="flex-1 min-w-0 text-left">
+					<div className="text-[11px] font-semibold text-zinc-200 capitalize truncate">
+						{a.message}
+					</div>
+					<div className="text-[10px] text-zinc-500 truncate">{a.field}</div>
+				</div>
+				<span className="text-[10px] font-medium uppercase text-zinc-500 shrink-0">
+					{a.status}
+				</span>
+			</AccordionTrigger>
+			<AccordionContent className="px-3 pb-3">
+				<div className="mt-1 grid grid-cols-2 gap-2">
+					<div className="rounded-md border max-h-40 overflow-y-auto border-zinc-800 bg-zinc-950/40 p-2">
+						<div className="text-[10px] font-semibold tracking-widest text-zinc-600 uppercase mb-1">
+							Expected
+						</div>
+						<pre className="font-mono text-[10px] text-emerald-300 whitespace-pre-wrap break-all">
+							<code>{JSON.stringify(a.expected, null, 2)}</code>
+						</pre>
+					</div>
+					<div className="rounded-md border max-h-40 overflow-y-auto border-zinc-800 bg-zinc-950/40 p-2">
+						<div className="text-[10px] font-semibold tracking-widest text-zinc-600 uppercase mb-1">
+							Actual
+						</div>
+						<pre
+							className={cn(
+								'font-mono text-[10px] whitespace-pre-wrap break-all',
+								skip ? 'text-zinc-400' : pass ? 'text-zinc-300' : 'text-rose-300',
+							)}
+						>
+							<code>{JSON.stringify(a.actual, null, 2)}</code>
+						</pre>
+					</div>
+				</div>
+			</AccordionContent>
+		</AccordionItem>
+	);
+}
 
 export function DetailPanel({
 	test,
@@ -29,6 +92,7 @@ export function DetailPanel({
 	response: any;
 }) {
 	const [tab, setTab] = useState<DetailTab>('body');
+	const [panelTab, setPanelTab] = useState<'test' | 'docs'>('test');
 	const { isLoading, data, error, isError } = response;
 	const result: TestCaseResult = data?.data;
 	const getError = error as {
@@ -49,6 +113,53 @@ export function DetailPanel({
 		}
 	};
 
+	if (!test && panelTab !== 'docs') {
+		return (
+			<div className="flex-1 flex flex-col min-w-0">
+				<div className="flex border-b border-zinc-800">
+					<button
+						onClick={() => setPanelTab('test')}
+						className="px-4 py-2 text-xs text-zinc-100 border-b-2 border-orange-400"
+					>
+						Test
+					</button>
+					<button
+						onClick={() => setPanelTab('docs')}
+						className="px-4 py-2 text-xs text-zinc-500 border-b-2 border-transparent"
+					>
+						Docs
+					</button>
+				</div>
+				<div className="flex-1 flex flex-col items-center justify-center text-zinc-600 gap-3">
+					<Zap className="w-8 h-8 opacity-30" />
+					<span className="text-sm">Select a test to view details</span>
+				</div>
+			</div>
+		);
+	}
+
+	if (panelTab === 'docs' && collection?.id) {
+		return (
+			<div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+				<div className="flex border-b border-zinc-800">
+					<button
+						onClick={() => setPanelTab('test')}
+						className="px-4 py-2 text-xs text-zinc-500 border-b-2 border-transparent"
+					>
+						Test
+					</button>
+					<button
+						onClick={() => setPanelTab('docs')}
+						className="px-4 py-2 text-xs text-zinc-100 border-b-2 border-orange-400"
+					>
+						Docs
+					</button>
+				</div>
+				<DocsEditor collectionId={collection.id} />
+			</div>
+		);
+	}
+
 	if (!test) {
 		return (
 			<div className="flex-1 flex flex-col items-center justify-center text-zinc-600 gap-3">
@@ -60,6 +171,20 @@ export function DetailPanel({
 
 	return (
 		<div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+			<div className="flex border-b border-zinc-800">
+				<button
+					onClick={() => setPanelTab('test')}
+					className="px-4 py-2 text-xs text-zinc-100 border-b-2 border-orange-400"
+				>
+					Test
+				</button>
+				<button
+					onClick={() => setPanelTab('docs')}
+					className="px-4 py-2 text-xs text-zinc-500 border-b-2 border-transparent"
+				>
+					Docs
+				</button>
+			</div>
 			{/* Header */}
 			<div className="flex items-center justify-between px-5 py-3 border-b border-zinc-800 shrink-0">
 				<div className="flex items-center gap-2.5">
@@ -131,10 +256,77 @@ export function DetailPanel({
 						</div>
 					) : (
 						<>
+							{/* Tabs (always visible, including History) */}
+							<div className="flex border-b border-zinc-800">
+								{(['body', 'headers', 'assertions', 'history'] as DetailTab[]).map(
+									(t) => (
+										<button
+											key={t}
+											onClick={() => setTab(t)}
+											className={cn(
+												'px-4 py-2 text-[12px] font-medium capitalize transition-colors duration-150 border-b-2 -mb-px',
+												tab === t
+													? 'text-zinc-100 border-orange-400'
+													: 'text-zinc-500 border-transparent hover:text-zinc-300',
+											)}
+										>
+											{t}
+										</button>
+									),
+								)}
+							</div>
+
+							{/* Tab content */}
+							<div className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg rounded-t-none">
+								{tab === 'history' && <TestHistory testId={test.id} />}
+
+								{tab !== 'history' && !result && !isError && (
+									<div className="flex items-center justify-center text-zinc-600 text-[13px] gap-2 py-6">
+										<Play className="w-4 h-4" />
+										Run test to see {tab}
+									</div>
+								)}
+
+								{tab === 'body' && result && (
+									<pre className="font-mono text-[11px] text-zinc-400 leading-relaxed overflow-x-auto whitespace-pre-wrap break-all">
+										<code>{JSON.stringify(result.actual?.body)}</code>
+									</pre>
+								)}
+
+								{tab === 'headers' && result && (
+									<div className="space-y-1.5">
+										{Object.entries(result.actual?.headers ?? {}).length === 0 ? (
+											<div className="text-xs text-zinc-500">No headers.</div>
+										) : (
+											Object.entries(result.actual?.headers ?? {}).map(([k, v]) => (
+												<div key={k} className="flex gap-3 font-mono text-[11px]">
+													<span className="text-zinc-500 shrink-0">{k}:</span>
+													<span className="text-zinc-300 break-all">{String(v)}</span>
+												</div>
+											))
+										)}
+									</div>
+								)}
+
+								{tab === 'assertions' && result && (
+									<div className="space-y-2">
+										{result.assertions.length === 0 ? (
+											<div className="text-xs text-zinc-500">No assertions.</div>
+										) : (
+											<Accordion type="multiple" className="space-y-2">
+												{result.assertions.map((a, i) => (
+													<AssertionAccordionItem key={i} a={a} index={i} />
+												))}
+											</Accordion>
+										)}
+									</div>
+								)}
+							</div>
+
 							{!result && !isError && (
-								<div className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-6 flex items-center justify-center text-zinc-600 text-[13px] gap-2">
-									<Play className="w-4 h-4" />
-									Not yet run — press Run test to execute
+								<div className="mt-3 text-[11px] text-zinc-500">
+									Not yet run — press <span className="text-zinc-300">Run test</span>{' '}
+									to execute.
 								</div>
 							)}
 							{isError && (
@@ -171,8 +363,7 @@ export function DetailPanel({
 								</div>
 							)}
 							{result && (
-								<div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
-									{/* Result meta */}
+								<div className="mt-3 bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
 									<div className="flex items-center gap-4 px-4 py-3 border-b border-zinc-800">
 										<StatusBadge status={result.status} />
 										<div className="flex items-center gap-1.5 text-[12px] text-zinc-500">
@@ -201,100 +392,6 @@ export function DetailPanel({
 											{result.assertions.length} assertion
 											{result.assertions.length !== 1 ? 's' : ''}
 										</span>
-									</div>
-
-									{/* Tabs */}
-									<div className="flex border-b border-zinc-800">
-										{(['body', 'headers', 'assertions'] as DetailTab[]).map(
-											(t) => (
-												<button
-													key={t}
-													onClick={() => setTab(t)}
-													className={cn(
-														'px-4 py-2 text-[12px] font-medium capitalize transition-colors duration-150 border-b-2 -mb-px',
-														tab === t
-															? 'text-zinc-100 border-orange-400'
-															: 'text-zinc-500 border-transparent hover:text-zinc-300',
-													)}
-												>
-													{t}
-													{t === 'assertions' && (
-														<span
-															className={cn(
-																'ml-1.5 px-1.5 py-0.5 rounded-full text-[10px]',
-																result.assertions.every(
-																	(a) => a.status === 'pass',
-																)
-																	? 'bg-emerald-400/10 text-emerald-400'
-																	: 'bg-rose-400/10 text-rose-400',
-															)}
-														>
-															{
-																result.assertions.filter(
-																	(a) => a.status === 'pass',
-																).length
-															}
-															/{result.assertions.length}
-														</span>
-													)}
-												</button>
-											),
-										)}
-									</div>
-
-									{/* Tab content */}
-									<div className="p-4">
-										{tab === 'body' && (
-											<pre className="font-mono text-[11px] text-zinc-400 leading-relaxed overflow-x-auto whitespace-pre-wrap break-all">
-												<code>{JSON.stringify(result.actual?.body)}</code>
-											</pre>
-										)}
-										{tab === 'headers' && (
-											<div className="space-y-1.5">
-												{[
-													['Content-Type', 'application/json; charset=utf-8'],
-													['X-Response-Time', `${result.durationMs}ms`],
-													['Cache-Control', 'no-cache'],
-												].map(([k, v]) => (
-													<div
-														key={k}
-														className="flex gap-3 font-mono text-[11px]"
-													>
-														<span className="text-zinc-500 shrink-0">{k}:</span>
-														<span className="text-zinc-300">{v}</span>
-													</div>
-												))}
-											</div>
-										)}
-										{tab === 'assertions' && (
-											<div className="space-y-2">
-												{result.assertions.map((a, i) => (
-													<div
-														key={i}
-														className={cn(
-															'flex items-start gap-3 px-3 py-2.5 rounded-lg border',
-															a.status === 'pass'
-																? 'border-emerald-400/20 bg-emerald-400/5'
-																: 'border-rose-400/20 bg-rose-400/5',
-														)}
-													>
-														{a.status === 'pass' ? (
-															<CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-														) : (
-															<XCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-														)}
-														<div>
-															<div className="text-[12px] font-semibold text-zinc-200 capitalize">
-																{a.message}
-															</div>
-															<div className="text-[11px] text-zinc-500 mt-0.5">
-																{a.field}
-															</div>
-														</div>
-													</div>
-												))}
-											</div>
-										)}
 									</div>
 								</div>
 							)}

@@ -26,4 +26,39 @@ export interface Assertion {
 	passed: boolean;
 }
 
-export type DetailTab = 'body' | 'headers' | 'assertions';
+export type DetailTab = 'body' | 'headers' | 'assertions' | 'history';
+
+export interface Documentation {
+	id: string;
+	_id: string;
+	collectionId: string;
+	title: string;
+	content: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface EnvVar {
+	id: string;
+	_id: string;
+	key: string;
+	value: string;
+	teamId: string;
+}
+
+export interface TeamMemberUser {
+	id: string;
+	_id: string;
+	name: string;
+	email: string;
+	role: 'owner' | 'admin' | 'member';
+}
+
+export interface Team {
+	id: string;
+	_id: string;
+	name: string;
+	slug: string;
+	ownerId: string;
+	members: { userId: TeamMemberUser; role: 'owner' | 'admin' | 'member' }[];
+}

@@ -62,8 +62,10 @@ export interface AssertionResult {
 
 export interface TestCase {
 	id: string;
+	_id?: string;
 	name: string;
 	description?: string;
+	collectionId?: string;
 	request: TestRequest;
 	expectedResponse: ExpectedResponse;
 	createdAt: string; // ISO
@@ -74,11 +76,19 @@ export interface TestCase {
 
 export interface Collection {
 	id: string;
+	_id?: string;
 	name: string;
 	description?: string;
+	parentId?: string | null;
+	teamId?: string;
+	assignedUserIds?: string[];
 	testCases: TestCase[];
 	createdAt: string;
 	updatedAt: string;
+}
+
+export interface CollectionTreeNode extends Collection {
+	children: CollectionTreeNode[];
 }
 
 // ─── Run Results ─────────────────────────────────────────────────────────────
@@ -131,4 +141,9 @@ export type UpdateTestCaseDto = Partial<CreateTestCaseDto>;
 export interface RunTestCaseDto {
 	/** Override the saved request (optional – useful for ad-hoc runs) */
 	request?: Partial<TestRequest>;
+}
+
+export interface RunCollectionDto {
+	mode?: 'sequential' | 'parallel';
+	stopOnFail?: boolean;
 }

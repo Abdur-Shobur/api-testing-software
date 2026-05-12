@@ -4,22 +4,44 @@ import { Collection } from './type';
 export const collectionApi = apiSlice.injectEndpoints({
 	endpoints: (builder) => ({
 		// ─── Collections ───
-		GetCollections: builder.query<{ data: Collection[]; total: number }, void>({
-			query: () => ({
-				url: '/collections',
-				method: 'GET',
-			}),
+		GetCollections: builder.query<
+			{ data: Collection[]; total: number },
+			{ projectId?: string | null } | void
+		>({
+			query: (arg) => {
+				const projectId = (arg as any)?.projectId;
+				const params =
+					projectId === undefined ? undefined : { projectId: projectId ?? 'null' };
+				return { url: '/collections', method: 'GET', params };
+			},
 			providesTags: ['COLLECTIONS'],
 		}),
 
-		GetCollection: builder.query<Collection, string>({
+		GetCollection: builder.query<{ data: Collection }, string>({
 			query: (id) => `/collections/${id}`,
+			providesTags: ['COLLECTIONS'],
+		}),
+
+		GetCollectionChildren: builder.query<
+			{ data: Collection[]; total: number },
+			{ id: string; projectId?: string | null }
+		>({
+			query: ({ id, projectId }) => {
+				const params =
+					projectId === undefined ? undefined : { projectId: projectId ?? 'null' };
+				return { url: `/collections/${id}/children`, method: 'GET', params };
+			},
 			providesTags: ['COLLECTIONS'],
 		}),
 
 		CreateCollection: builder.mutation<
 			{ data: Collection; success: boolean },
-			{ name: string; description?: string }
+			{
+				name: string;
+				description?: string;
+				parentId?: string | null;
+				projectId?: string | null;
+			}
 		>({
 			query: (body) => ({
 				url: '/collections',
@@ -57,6 +79,7 @@ export const collectionApi = apiSlice.injectEndpoints({
 export const {
 	useGetCollectionsQuery,
 	useGetCollectionQuery,
+	useGetCollectionChildrenQuery,
 	useCreateCollectionMutation,
 	useUpdateCollectionMutation,
 	useDeleteCollectionMutation,

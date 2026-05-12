@@ -10,6 +10,38 @@ import {
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
 
+export type RunnerEnvironment = Record<string, string>;
+
+function replaceEnvVars(value: string, env: RunnerEnvironment): string {
+	return value.replace(/\{\{([A-Z0-9_]+)\}\}/gi, (_match, key: string) => {
+		return env[key] ?? env[key.toUpperCase()] ?? '';
+	});
+}
+
+function substituteRequestEnv(
+	request: TestCase['request'],
+	env: RunnerEnvironment,
+): TestCase['request'] {
+	return {
+		...request,
+		url: replaceEnvVars(request.url, env),
+		headers: request.headers.map((header) => ({
+			...header,
+			value: replaceEnvVars(header.value, env),
+		})),
+		queryParams: request.queryParams.map((param) => ({
+			...param,
+			value: replaceEnvVars(param.value, env),
+		})),
+		body: request.body
+			? {
+					...request.body,
+					content: replaceEnvVars(request.body.content, env),
+				}
+			: request.body,
+	};
+}
+
 function tryParseJson(raw: string): unknown {
 	try {
 		return JSON.parse(raw);
@@ -219,8 +251,12 @@ function assertBody(
 
 // ─── Runner ──────────────────────────────────────────────────────────────────
 
-export async function runTestCase(testCase: TestCase): Promise<TestCaseResult> {
-	const { request, expectedResponse } = testCase;
+export async function runTestCase(
+	testCase: TestCase,
+	env: RunnerEnvironment = {},
+): Promise<TestCaseResult> {
+	const request = substituteRequestEnv(testCase.request, env);
+	const { expectedResponse } = testCase;
 	const startTime = Date.now();
 
 	// Build axios config

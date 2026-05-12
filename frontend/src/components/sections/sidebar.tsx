@@ -1,18 +1,37 @@
-import { cn } from '@/lib/utils';
+import { CollectionTree } from '@/components/CollectionTree';
+import { EnvVarsPanel } from '@/components/EnvVarsPanel';
+import { useAuth } from '@/hooks/useAuth';
 import { CreateModal } from '@/store/features/collections/create-modal';
-import { CollectionDelete } from '@/store/features/collections/delete';
-import { EditModal } from '@/store/features/collections/edit-modal';
 import { Collection } from '@/store/features/collections/type';
-import { ChevronRight, Flame, Layers } from 'lucide-react';
+import { useGetProjectsQuery } from '@/store/features/projects/api-slice';
+import { useGetMyTeamCollectionsQuery } from '@/store/features/team/api-slice';
+import { Flame, LogOut } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '../ui/select';
 export function Sidebar({
 	collections,
 	selectedId,
 	onSelect,
+	projectId,
+	onProjectChange,
 }: {
 	collections: Collection[];
 	selectedId: string;
 	onSelect: (id: string) => void;
+	projectId?: string | null;
+	onProjectChange?: (projectId: string | null) => void;
 }) {
+	const { user, logout } = useAuth();
+	const router = useRouter();
+	const { data } = useGetMyTeamCollectionsQuery();
+	const { data: projectsData } = useGetProjectsQuery();
+	const projects = projectsData?.data ?? [];
 	return (
 		<aside className="flex flex-col border-r border-zinc-800 bg-zinc-900/50 w-56 shrink-0">
 			{/* Header */}
@@ -25,7 +44,68 @@ export function Sidebar({
 						API Test
 					</span>
 				</div>
-				<CreateModal />
+				<CreateModal projectId={projectId ?? null} />
+			</div>
+
+			{user && (
+				<div className="px-3 py-3 border-b border-zinc-800 flex items-center gap-2">
+					<div className="w-7 h-7 rounded-full bg-orange-500/20 text-orange-300 flex items-center justify-center text-xs font-semibold">
+						{user.name.slice(0, 1).toUpperCase()}
+					</div>
+					<button
+						type="button"
+						onClick={() => router.push('/team')}
+						className="min-w-0 flex-1 text-left"
+					>
+						<div className="text-[12px] text-zinc-100 truncate">
+							{user.name}
+						</div>
+						<div className="text-[10px] text-zinc-500 truncate">
+							{user.role}
+						</div>
+					</button>
+					<button
+						type="button"
+						onClick={() => {
+							logout();
+							router.replace('/login');
+						}}
+						className="p-1.5 rounded hover:bg-zinc-800 text-zinc-500"
+						title="Logout"
+					>
+						<LogOut className="w-3.5 h-3.5" />
+					</button>
+				</div>
+			)}
+
+			{/* Project selector */}
+			<div className="px-3 py-3 border-b border-zinc-800">
+				<div className="text-[10px] font-semibold tracking-widest text-zinc-600 uppercase mb-2">
+					Project
+				</div>
+				<Select
+					value={projectId ?? 'null'}
+					onValueChange={(v) => onProjectChange?.(v === 'null' ? null : v)}
+				>
+					<SelectTrigger className="w-full">
+						<SelectValue placeholder="Select project" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="null">Unassigned</SelectItem>
+						{projects.map((p) => (
+							<SelectItem key={p.id ?? p._id} value={p.id ?? p._id}>
+								{p.name}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+				<button
+					type="button"
+					onClick={() => router.push('/projects')}
+					className="mt-2 w-full text-[12px] text-zinc-400 hover:text-zinc-200 text-left"
+				>
+					Manage projects
+				</button>
 			</div>
 
 			{/* Label */}
@@ -37,39 +117,14 @@ export function Sidebar({
 
 			{/* List */}
 			<div className="flex-1 overflow-y-auto px-2 pb-3 space-y-0.5">
-				{collections.map((col) => (
-					<button
-						key={col.id}
-						onClick={() => onSelect(col.id)}
-						className={cn(
-							'w-full flex items-center justify-between group px-3 py-2 rounded-lg text-left transition-all duration-150',
-							selectedId === col.id
-								? 'bg-zinc-800 text-zinc-100'
-								: 'text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200',
-						)}
-					>
-						<div className="flex items-center gap-2 min-w-0">
-							<Layers className="w-3.5 h-3.5 shrink-0 opacity-60" />
-							<div className="min-w-0">
-								<div className="text-[13px] font-medium truncate">
-									{col.name}
-								</div>
-								<div className="text-[11px] text-zinc-600 mt-0.5">
-									{col.testCases.length} test
-									{col.testCases.length !== 1 ? 's' : ''}
-								</div>
-							</div>
-						</div>
-						<div className="flex items-center gap-1 shrink-0">
-							{selectedId === col.id && (
-								<ChevronRight className="w-3 h-3 opacity-40" />
-							)}
-							<EditModal data={col} />
-							<CollectionDelete data={col} />
-						</div>
-					</button>
-				))}
+				<CollectionTree
+					collections={collections}
+					selectedId={selectedId}
+					onSelect={onSelect}
+					projectId={projectId}
+				/>
 			</div>
+			<EnvVarsPanel projectId={projectId} />
 		</aside>
 	);
 }

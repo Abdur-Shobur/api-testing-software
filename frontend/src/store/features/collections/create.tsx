@@ -30,7 +30,15 @@ export const schema = z.object({
 
 export type ZodType = z.infer<typeof schema>;
 
-export function Create({ setOpen }: { setOpen?: iState<boolean> }) {
+export function Create({
+	setOpen,
+	parentId,
+	projectId,
+}: {
+	setOpen?: iState<boolean>;
+	parentId?: string | null;
+	projectId?: string | null;
+}) {
 	const [store, { isLoading }] = useCreateCollectionMutation();
 
 	const form = useForm<ZodType>({
@@ -45,6 +53,8 @@ export function Create({ setOpen }: { setOpen?: iState<boolean> }) {
 		try {
 			const response = await store({
 				...data,
+				parentId,
+				projectId,
 			}).unwrap();
 
 			if (response.success) {

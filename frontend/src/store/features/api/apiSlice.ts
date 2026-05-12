@@ -11,8 +11,10 @@ const getBaseAPI = () => {
 const baseQuery = fetchBaseQuery({
 	baseUrl: getBaseAPI(),
 	prepareHeaders: async (headers) => {
-		// const session = await getSession();
-		// headers.set('Authorization', `Bearer ${session?.accessToken}`);
+		if (typeof window !== 'undefined') {
+			const token = localStorage.getItem('api_runner_token');
+			if (token) headers.set('Authorization', `Bearer ${token}`);
+		}
 		return headers;
 	},
 });
@@ -25,5 +27,5 @@ export const apiSlice = createApi({
 	refetchOnMountOrArgChange: true,
 	refetchOnFocus: env.production ? false : true,
 	keepUnusedDataFor: 50000,
-	tagTypes: ['COLLECTIONS'],
+	tagTypes: ['COLLECTIONS', 'DOCS', 'ENV_VARS', 'TEAM', 'HISTORY', 'PROJECTS'],
 });

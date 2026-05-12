@@ -4,11 +4,16 @@ import { Sidebar } from '@/components/sections/sidebar';
 import { TestsPanel } from '@/components/sections/test-panel';
 import { TopBar } from '@/components/sections/top-bar';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 import { DetailPanel } from '@/components/sections/detail-panel';
 import { RunAllPanel } from '@/components/sections/run-all-panel';
-import { useGetCollectionsQuery } from '@/store/features/collections/api-slice';
+import {
+	useGetCollectionQuery,
+	useGetCollectionsQuery,
+} from '@/store/features/collections/api-slice';
 import { Collection } from '@/store/features/collections/type';
+import { useGetProjectsQuery } from '@/store/features/projects/api-slice';
 import {
 	useRunCollectionMutation,
 	useRunTestCaseMutation,
@@ -20,26 +25,37 @@ export default function Home() {
 	type ViewMode = 'idle' | 'single' | 'all';
 
 	const [viewMode, setViewMode] = useState<ViewMode>('idle');
+	const router = useRouter();
+	const { data: projectsData } = useGetProjectsQuery();
+	const projects = projectsData?.data ?? [];
+	const [projectId, setProjectId] = useState<string | null>(null);
 	// ─── API ────────────────────────────────────────────────────────────────
-	const { data, isLoading } = useGetCollectionsQuery();
+	const { data, isLoading } = useGetCollectionsQuery({ projectId });
 	const [runMutation, { isLoading: isRunning }] = useRunCollectionMutation();
 	const collections: Collection[] = data?.data ?? [];
 
 	// ─── State ──────────────────────────────────────────────────────────────
 	const [selectedColId, setSelectedColId] = useState<string>('');
 	const [selectedTestId, setSelectedTestId] = useState<string>('');
+	const { data: selectedCollectionResponse } = useGetCollectionQuery(selectedColId, {
+		skip: !selectedColId,
+	});
 
 	// ─── Sync selection when data loads ─────────────────────────────────────
 	useEffect(() => {
+		// pick first project once
+		if (projects.length > 0 && projectId === null) {
+			setProjectId(projects[0].id ?? projects[0]._id ?? null);
+		}
+	}, [projects, projectId]);
+
+	useEffect(() => {
 		if (collections?.length > 0 && !selectedColId) {
 			const firstCol = collections[0];
-			setSelectedColId(firstCol.id);
-
-			if (firstCol.testCases?.length > 0) {
-				setSelectedTestId(firstCol.testCases[0].id);
-			}
+			// move to URL-based runner
+			router.replace(`/collections/${firstCol.id}`);
 		}
-	}, [collections, selectedColId]);
+	}, [collections, selectedColId, router]);
 
 	// ─── Run Test Case ──────────────────────────────────────────────────────────
 	const [mutation, response] = useRunTestCaseMutation();
@@ -81,7 +97,9 @@ export default function Home() {
 
 	// ───   data ─────────────────────────────────────────────────────
 	const selectedCollection: Collection | null =
-		collections.find((c) => c.id === selectedColId) ?? null;
+		collections.find((c) => c.id === selectedColId) ??
+		selectedCollectionResponse?.data ??
+		null;
 
 	const selectedTest: iTestCase | null =
 		selectedCollection?.testCases.find((t) => t.id === selectedTestId) ?? null;
@@ -109,6 +127,12 @@ export default function Home() {
 								setSelectedColId(id);
 								setSelectedTestId('');
 							}}
+							projectId={projectId}
+							onProjectChange={(next) => {
+								setProjectId(next);
+								setSelectedColId('');
+								setSelectedTestId('');
+							}}
 						/>
 					)}
 
@@ -120,7 +144,7 @@ export default function Home() {
 						onRun={handleTestCaseRun}
 					/>
 
-					{viewMode === 'single' && (
+					{viewMode !== 'all' && (
 						<DetailPanel
 							test={selectedTest}
 							collection={selectedCollection}

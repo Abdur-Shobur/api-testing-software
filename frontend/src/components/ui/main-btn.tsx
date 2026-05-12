@@ -5,17 +5,21 @@ export function Btn({
 	onClick,
 	variant = 'default',
 	size = 'md',
+	disabled,
 }: {
 	children: React.ReactNode;
 	onClick?: () => void;
 	variant?: 'default' | 'primary';
 	size?: 'sm' | 'md';
+	disabled?: boolean;
 }) {
 	return (
 		<button
 			onClick={onClick}
+			disabled={disabled}
 			className={cn(
 				'inline-flex items-center gap-1.5 font-medium rounded-md transition-all duration-150 active:scale-95',
+				disabled && 'opacity-50 pointer-events-none',
 				size === 'sm' ? 'text-xs px-2.5 h-7' : 'text-xs px-3 h-8',
 				variant === 'default'
 					? 'bg-zinc-800 text-zinc-300 ring-1 ring-zinc-700 hover:bg-zinc-700 hover:text-zinc-100 hover:ring-zinc-600'

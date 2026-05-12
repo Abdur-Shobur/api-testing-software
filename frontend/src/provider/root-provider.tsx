@@ -1,6 +1,7 @@
 'use client';
 import { setupListeners } from '@reduxjs/toolkit/query';
 
+import { AuthGuard } from '@/components/AuthGuard';
 import { AppStore, makeStore } from '@/store';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Provider } from 'react-redux';
@@ -27,7 +28,9 @@ export const RootProviders = ({ children }: { children: React.ReactNode }) => {
 	return (
 		<Context.Provider value={contextValue}>
 			<Toaster richColors position="top-right" />
-			<Provider store={storeRef.current}>{children}</Provider>
+			<Provider store={storeRef.current}>
+				<AuthGuard>{children}</AuthGuard>
+			</Provider>
 		</Context.Provider>
 	);
 };

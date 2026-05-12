@@ -1,5 +1,5 @@
 import { apiSlice } from '../api/apiSlice';
-import { CollectionRunResult, iTestCase, TestCaseResult } from './type';
+import { CollectionRunResult, iTestCase, TestCaseResult, TestRun } from './type';
 
 export const collectionApi = apiSlice.injectEndpoints({
 	endpoints: (builder) => ({
@@ -40,11 +40,27 @@ export const collectionApi = apiSlice.injectEndpoints({
 		}),
 
 		// ─── Run ───
-		RunCollection: builder.mutation<{ data: CollectionRunResult }, string>({
-			query: (colId) => ({
-				url: `/run/${colId}`,
+		RunCollection: builder.mutation<
+			{ data: CollectionRunResult },
+			| string
+			| { colId: string; mode?: 'sequential' | 'parallel'; stopOnFail?: boolean }
+		>({
+			query: (arg) => ({
+				url: `/run/${typeof arg === 'string' ? arg : arg.colId}`,
 				method: 'POST',
+				body:
+					typeof arg === 'string'
+						? undefined
+						: { mode: arg.mode, stopOnFail: arg.stopOnFail },
 			}),
+		}),
+
+		GetTestHistory: builder.query<{ data: TestRun[] }, string>({
+			query: (testId) => ({
+				url: `/test-cases/${testId}/history`,
+				method: 'GET',
+			}),
+			providesTags: ['HISTORY'],
 		}),
 
 		RunTestCase: builder.mutation<
@@ -55,6 +71,7 @@ export const collectionApi = apiSlice.injectEndpoints({
 				url: `/run/${colId}/${testId}`,
 				method: 'POST',
 			}),
+			invalidatesTags: ['HISTORY'],
 		}),
 	}),
 });
@@ -65,4 +82,5 @@ export const {
 	useDeleteTestCaseMutation,
 	useRunCollectionMutation,
 	useRunTestCaseMutation,
+	useGetTestHistoryQuery,
 } = collectionApi;

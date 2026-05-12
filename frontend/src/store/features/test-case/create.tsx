@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/select';
 import { METHODS } from '@/type';
 import { ArrowDown, ArrowUp, BookCheck, FileText } from 'lucide-react';
+import { useGetCollectionsQuery } from '../collections/api-slice';
 import { useCreateTestCaseMutation } from './api-slice';
 const methodColor: Record<string, string> = {
 	GET: '#4fffb0',
@@ -125,8 +126,10 @@ export function TestCaseCreate({
 	onClose?: () => void;
 }) {
 	const [createTest, { isLoading }] = useCreateTestCaseMutation();
+	const { data: collectionsData } = useGetCollectionsQuery();
 	const [tab, setTab] = useState<'request' | 'expected'>('request');
 	const [mode, setMode] = useState<'params' | 'headers' | 'body'>('params');
+	const [targetColId, setTargetColId] = useState(colId);
 
 	const form = useForm<FormType>({
 		resolver: zodResolver(schema),
@@ -142,7 +145,7 @@ export function TestCaseCreate({
 	const onSubmit = async (data: FormType) => {
 		try {
 			const res = await createTest({
-				colId,
+				colId: targetColId,
 				body: data,
 			}).unwrap();
 
@@ -190,6 +193,21 @@ export function TestCaseCreate({
 							</FormItem>
 						)}
 					/>
+
+					<div className="space-y-2">
+						<label className="text-sm font-medium">Collection</label>
+						<select
+							value={targetColId}
+							onChange={(event) => setTargetColId(event.target.value)}
+							className="h-9 w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 text-sm"
+						>
+							{(collectionsData?.data ?? []).map((collection) => (
+								<option key={collection.id} value={collection.id}>
+									{collection.name}
+								</option>
+							))}
+						</select>
+					</div>
 				</div>
 
 				{/* ================= TABS ================= */}

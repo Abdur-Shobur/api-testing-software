@@ -27,8 +27,10 @@ export interface AssertionResult {
 
 export type iTestCase = {
 	id: string;
+	_id?: string;
 	name: string;
 	description: string;
+	collectionId?: string;
 
 	request: {
 		method: Method;
@@ -96,4 +98,16 @@ export interface CollectionRunResult {
 	errored: number;
 	durationMs: number;
 	results: TestCaseResult[];
+}
+
+export interface TestRun {
+	id: string;
+	_id: string;
+	testCaseId: string;
+	collectionId: string;
+	status: Status;
+	durationMs: number;
+	assertions: AssertionResult[];
+	actual: unknown;
+	runAt: string;
 }

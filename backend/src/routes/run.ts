@@ -1,7 +1,10 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { getCollectionById } from '../store';
 import { runTestCase } from '../runner';
-import { CollectionRunResult, RunTestCaseDto } from '../types';
+import { CollectionRunResult, RunCollectionDto, RunTestCaseDto, TestCaseResult } from '../types';
+import { EnvironmentVariable } from '../models/EnvironmentVariable';
+import { TestRun } from '../models/TestRun';
+import { CollectionRun } from '../models/CollectionRun';
 
 export const runRouter = Router();
 
@@ -11,13 +14,38 @@ function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => P
   };
 }
 
+async function getRunnerEnv(teamId: string): Promise<Record<string, string>> {
+  const vars = await EnvironmentVariable.find({ teamId });
+  return vars.reduce<Record<string, string>>((acc, envVar) => {
+    acc[envVar.key] = envVar.value;
+    return acc;
+  }, {});
+}
+
+async function saveTestRun(
+  result: TestCaseResult,
+  collectionId: string,
+  userId: string,
+): Promise<void> {
+  await TestRun.create({
+    testCaseId: result.testCaseId,
+    collectionId,
+    status: result.status,
+    durationMs: result.durationMs,
+    assertions: result.assertions,
+    actual: result.actual,
+    runBy: userId,
+    runAt: new Date(),
+  });
+}
+
 // ─── Run a single test case ──────────────────────────────────────────────────
 // POST /run/:collectionId/:testId
 
 runRouter.post(
   '/:collectionId/:testId',
   asyncHandler(async (req, res) => {
-    const col = await getCollectionById(req.params.collectionId);
+    const col = await getCollectionById(req.params.collectionId, req.user!.teamId);
     if (!col) { res.status(404).json({ error: 'Collection not found' }); return; }
 
     const tc = col.testCases.find((t) => t.id === req.params.testId);
@@ -29,7 +57,9 @@ runRouter.post(
       ? { ...tc, request: { ...tc.request, ...dto.request } }
       : tc;
 
-    const result = await runTestCase(merged);
+    const env = await getRunnerEnv(req.user!.teamId);
+    const result = await runTestCase(merged, env);
+    await saveTestRun(result, col.id, req.user!.userId);
     const httpStatus = result.status === 'pass' ? 200 : result.status === 'error' ? 502 : 200;
     res.status(httpStatus).json({ data: result });
   })
@@ -41,7 +71,7 @@ runRouter.post(
 runRouter.post(
   '/:collectionId',
   asyncHandler(async (req, res) => {
-    const col = await getCollectionById(req.params.collectionId);
+    const col = await getCollectionById(req.params.collectionId, req.user!.teamId);
     if (!col) { res.status(404).json({ error: 'Collection not found' }); return; }
 
     if (col.testCases.length === 0) {
@@ -50,7 +80,25 @@ runRouter.post(
     }
 
     const startTime = Date.now();
-    const results = await Promise.all(col.testCases.map((tc) => runTestCase(tc)));
+    const dto = (req.body ?? {}) as RunCollectionDto;
+    const mode = dto.mode ?? 'parallel';
+    const env = await getRunnerEnv(req.user!.teamId);
+    const results: TestCaseResult[] = [];
+
+    if (mode === 'sequential') {
+      for (const tc of col.testCases) {
+        const result = await runTestCase(tc, env);
+        await saveTestRun(result, col.id, req.user!.userId);
+        results.push(result);
+        if (dto.stopOnFail && result.status !== 'pass') break;
+      }
+    } else {
+      const parallelResults = await Promise.all(col.testCases.map((tc) => runTestCase(tc, env)));
+      await Promise.all(
+        parallelResults.map((result) => saveTestRun(result, col.id, req.user!.userId)),
+      );
+      results.push(...parallelResults);
+    }
     const totalDuration = Date.now() - startTime;
 
     const summary: CollectionRunResult = {
@@ -64,6 +112,14 @@ runRouter.post(
       durationMs: totalDuration,
       results,
     };
+
+    await CollectionRun.create({
+      collectionId: col.id,
+      teamId: req.user!.teamId,
+      runBy: req.user!.userId,
+      summary,
+      runAt: new Date(summary.runAt),
+    });
 
     res.json({ data: summary });
   })

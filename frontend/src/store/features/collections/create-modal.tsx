@@ -15,7 +15,13 @@ import { IconBtn } from '@/components/ui/icon-button';
 import { iState } from '@/type';
 import { Create } from './create';
 
-export function CreateModal() {
+export function CreateModal({
+	parentId,
+	projectId,
+}: {
+	parentId?: string | null;
+	projectId?: string | null;
+} = {}) {
 	const [open, setOpen] = useState(false);
 
 	return (
@@ -29,15 +35,25 @@ export function CreateModal() {
 			<DialogContent className="sm:max-w-125">
 				<DialogHeader>
 					<DialogTitle>Create Collection</DialogTitle>
-					<DialogDescription>Create a new Collection.</DialogDescription>
+					<DialogDescription>
+						{parentId ? 'Create a nested collection.' : 'Create a new Collection.'}
+					</DialogDescription>
 				</DialogHeader>
 
-				<FORM setOpen={setOpen} />
+				<FORM setOpen={setOpen} parentId={parentId} projectId={projectId} />
 			</DialogContent>
 		</Dialog>
 	);
 }
 
-const FORM = ({ setOpen }: { setOpen: iState<boolean> }) => {
-	return <Create setOpen={setOpen} />;
+const FORM = ({
+	setOpen,
+	parentId,
+	projectId,
+}: {
+	setOpen: iState<boolean>;
+	parentId?: string | null;
+	projectId?: string | null;
+}) => {
+	return <Create setOpen={setOpen} parentId={parentId} projectId={projectId} />;
 };

@@ -1,7 +1,14 @@
 import cors from 'cors';
 import express, { NextFunction, Request, Response } from 'express';
+import { requireAuth } from './middleware/auth';
+import { authRouter } from './routes/auth';
 import { collectionsRouter } from './routes/collections';
+import { docsRouter } from './routes/docs';
+import { envVarsRouter } from './routes/envVars';
+import { projectsRouter } from './routes/projects';
 import { runRouter } from './routes/run';
+import { teamsRouter } from './routes/teams';
+import { testCasesRouter } from './routes/testCases';
 
 export const app = express();
 
@@ -22,8 +29,14 @@ app.get('/health', (_req, res) => {
 });
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
-app.use('/collections', collectionsRouter);
-app.use('/run', runRouter);
+app.use('/auth', authRouter);
+app.use('/collections/:collectionId/docs', requireAuth, docsRouter);
+app.use('/collections', requireAuth, collectionsRouter);
+app.use('/run', requireAuth, runRouter);
+app.use('/teams', requireAuth, teamsRouter);
+app.use('/env-vars', requireAuth, envVarsRouter);
+app.use('/projects', requireAuth, projectsRouter);
+app.use('/test-cases', requireAuth, testCasesRouter);
 
 // ─── 404 ─────────────────────────────────────────────────────────────────────
 app.use((_req: Request, res: Response) => {
