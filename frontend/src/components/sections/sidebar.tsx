@@ -4,7 +4,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { CreateModal } from '@/store/features/collections/create-modal';
 import { Collection } from '@/store/features/collections/type';
 import { useGetProjectsQuery } from '@/store/features/projects/api-slice';
-import { useGetMyTeamCollectionsQuery } from '@/store/features/team/api-slice';
+import {
+	useGetMyTeamCollectionsQuery,
+	useGetSharedProjectsQuery,
+} from '@/store/features/team/api-slice';
 import { Flame, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
@@ -31,7 +34,9 @@ export function Sidebar({
 	const router = useRouter();
 	const { data } = useGetMyTeamCollectionsQuery();
 	const { data: projectsData } = useGetProjectsQuery();
+	const { data: sharedProjectsData } = useGetSharedProjectsQuery();
 	const projects = projectsData?.data ?? [];
+	const sharedProjects = sharedProjectsData?.data ?? [];
 	return (
 		<aside className="flex flex-col border-r border-zinc-800 bg-zinc-900/50 w-56 shrink-0">
 			{/* Header */}
@@ -105,6 +110,36 @@ export function Sidebar({
 					className="mt-2 w-full text-[12px] text-zinc-400 hover:text-zinc-200 text-left"
 				>
 					Manage projects
+				</button>
+			</div>
+
+			{/* Shared projects */}
+			<div className="px-3 py-3 border-b border-zinc-800">
+				<div className="text-[10px] font-semibold tracking-widest text-zinc-600 uppercase mb-2">
+					Shared projects
+				</div>
+				<Select
+					value={projectId ?? 'null'}
+					onValueChange={(v) => onProjectChange?.(v === 'null' ? null : v)}
+				>
+					<SelectTrigger className="w-full">
+						<SelectValue placeholder="Select project" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="null">Unassigned</SelectItem>
+						{sharedProjects.map((p) => (
+							<SelectItem key={p.id ?? p._id} value={p.id ?? p._id}>
+								{p.name}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+				<button
+					type="button"
+					onClick={() => router.push('/projects')}
+					className="mt-2 w-full text-[12px] text-zinc-400 hover:text-zinc-200 text-left"
+				>
+					Manage shared projects
 				</button>
 			</div>
 

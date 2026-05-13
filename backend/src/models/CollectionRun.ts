@@ -1,4 +1,4 @@
-import { Document, Schema, model, models, Types } from 'mongoose';
+import { Document, model, models, Schema, Types } from 'mongoose';
 import { CollectionRunResult } from '../types';
 
 export interface ICollectionRun extends Document {
@@ -17,7 +17,12 @@ const CollectionRunSchema = new Schema<ICollectionRun>(
 			required: true,
 			index: true,
 		},
-		teamId: { type: Schema.Types.ObjectId, ref: 'Team', required: true, index: true },
+		teamId: {
+			type: Schema.Types.ObjectId,
+			ref: 'Team',
+			required: true,
+			index: true,
+		},
 		runBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
 		summary: { type: Schema.Types.Mixed, required: true },
 		runAt: { type: Date, default: Date.now },
@@ -25,8 +30,9 @@ const CollectionRunSchema = new Schema<ICollectionRun>(
 	{
 		toJSON: { virtuals: true },
 		toObject: { virtuals: true },
-	},
+	}
 );
 
 export const CollectionRun =
-	models.CollectionRun || model<ICollectionRun>('CollectionRun', CollectionRunSchema);
+	models.CollectionRun ||
+	model<ICollectionRun>('CollectionRun', CollectionRunSchema);

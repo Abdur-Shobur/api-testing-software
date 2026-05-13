@@ -1,4 +1,6 @@
 import { NextFunction, Request, Response, Router } from 'express';
+import { Types } from 'mongoose';
+import { getRestrictedProjectIdForMember } from '../lib/memberProjectScope';
 import { Collection } from '../models/Collection';
 import { Documentation } from '../models/Documentation';
 
@@ -13,11 +15,21 @@ function asyncHandler(
 }
 
 async function assertCollection(req: Request, res: Response): Promise<boolean> {
-	const exists = await Collection.exists({
+	const col = await Collection.findOne({
 		_id: req.params.collectionId,
 		teamId: req.user!.teamId,
-	});
-	if (!exists) {
+	}).lean<{ projectId?: Types.ObjectId | null }>();
+	if (!col) {
+		res.status(404).json({ error: 'Collection not found' });
+		return false;
+	}
+	const restricted = await getRestrictedProjectIdForMember(
+		req.user!.userId,
+		req.user!.teamId,
+		req.user!.role,
+	);
+	const cp = col.projectId ? String(col.projectId) : null;
+	if (restricted && cp !== restricted) {
 		res.status(404).json({ error: 'Collection not found' });
 		return false;
 	}

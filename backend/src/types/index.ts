@@ -81,6 +81,7 @@ export interface Collection {
 	description?: string;
 	parentId?: string | null;
 	teamId?: string;
+	projectId?: string | null;
 	assignedUserIds?: string[];
 	testCases: TestCase[];
 	createdAt: string;

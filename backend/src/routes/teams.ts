@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response, Router } from 'express';
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { requireRole } from '../middleware/auth';
+import { Project } from '../models/Project';
 import { ITeamMember, Team } from '../models/Team';
 import { User, UserRole } from '../models/User';
 import { getAllCollections } from '../store';
@@ -47,12 +48,42 @@ teamsRouter.post(
 );
 
 teamsRouter.get(
+	'/shared-projects',
+	asyncHandler(async (req, res) => {
+		const userId = req.user!.userId;
+
+		const teams = await Team.find({
+			'members.userId': new mongoose.Types.ObjectId(userId),
+			'members.role': { $in: ['member', 'admin'] },
+		}).populate('members.projectId', 'name');
+
+		if (!teams || teams.length === 0) {
+			res.status(404).json({ error: 'Teams not found' });
+			return;
+		}
+
+		// extract projects only
+		const projects = teams.flatMap((team) =>
+			team.members
+				.filter(
+					(member) => member.projectId && member.userId.toString() === userId
+				)
+				.map((member) => member.projectId)
+		);
+
+		res.json({
+			data: projects,
+			total: projects.length,
+		});
+	})
+);
+
+teamsRouter.get(
 	'/my',
 	asyncHandler(async (req, res) => {
-		const team = await Team.findById(req.user!.teamId).populate(
-			'members.userId',
-			'name email role createdAt'
-		);
+		const team = await Team.findById(req.user!.teamId)
+			.populate('members.userId', 'name email role createdAt')
+			.populate('members.projectId', 'name');
 		if (!team) {
 			res.status(404).json({ error: 'Team not found' });
 			return;
@@ -83,9 +114,13 @@ teamsRouter.post(
 	'/invite',
 	requireRole('admin'),
 	asyncHandler(async (req, res) => {
-		const { email, role = 'member' } = req.body ?? {};
+		const { email, role = 'member', projectId } = req.body ?? {};
 		if (!email?.trim() || !['admin', 'member'].includes(role)) {
 			res.status(400).json({ error: 'valid email and role are required' });
+			return;
+		}
+		if (!projectId || !Types.ObjectId.isValid(String(projectId))) {
+			res.status(400).json({ error: 'valid projectId is required' });
 			return;
 		}
 
@@ -105,16 +140,35 @@ teamsRouter.post(
 			return;
 		}
 
+		const project = await Project.findOne({
+			_id: new Types.ObjectId(String(projectId)),
+			teamId: team._id,
+		});
+		if (!project) {
+			res.status(404).json({ error: 'Project not found for this team' });
+			return;
+		}
+
+		const projectOid = project._id as Types.ObjectId;
 		const existing = team.members.find((member: ITeamMember) =>
 			member.userId.equals(user._id as Types.ObjectId)
 		);
-		if (existing) existing.role = role as UserRole;
-		else team.members.push({ userId: user._id as Types.ObjectId, role });
+		if (existing) {
+			existing.role = role as UserRole;
+			existing.projectId = projectOid;
+		} else {
+			team.members.push({
+				userId: user._id as Types.ObjectId,
+				role: role as UserRole,
+				projectId: projectOid,
+			});
+		}
 
-		user.teamId = team._id as Types.ObjectId;
-		user.role = role as UserRole;
-		await Promise.all([team.save(), user.save()]);
-		res.status(201).json({ data: team });
+		await team.save();
+		const populated = await Team.findById(team._id)
+			.populate('members.userId', 'name email role createdAt')
+			.populate('members.projectId', 'name');
+		res.status(201).json({ data: populated });
 	})
 );
 
@@ -141,6 +195,9 @@ teamsRouter.patch(
 			return;
 		}
 		member.role = role;
+		if (role === 'owner' || role === 'admin') {
+			member.projectId = null;
+		}
 		await Promise.all([
 			team.save(),
 			User.findByIdAndUpdate(req.params.userId, { role }),

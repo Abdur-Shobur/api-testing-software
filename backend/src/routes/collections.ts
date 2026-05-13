@@ -1,4 +1,8 @@
 import { NextFunction, Request, Response, Router } from 'express';
+import {
+	collectionProjectMatches,
+	getRestrictedProjectIdForMember,
+} from '../lib/memberProjectScope';
 import { CollectionRun } from '../models/CollectionRun';
 import {
 	createCollection,
@@ -32,6 +36,24 @@ function asyncHandler(
 	};
 }
 
+function parseQueryProjectId(req: Request): string | null | undefined {
+	const projectIdRaw = req.query.projectId;
+	if (projectIdRaw === undefined) return undefined;
+	if (projectIdRaw === null || projectIdRaw === '' || projectIdRaw === 'null')
+		return null;
+	return String(projectIdRaw);
+}
+
+async function effectiveListProjectId(req: Request): Promise<string | null | undefined> {
+	const restricted = await getRestrictedProjectIdForMember(
+		req.user!.userId,
+		req.user!.teamId,
+		req.user!.role,
+	);
+	if (restricted) return restricted;
+	return parseQueryProjectId(req);
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // COLLECTIONS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -40,13 +62,7 @@ function asyncHandler(
 collectionsRouter.get(
 	'/',
 	asyncHandler(async (req, res) => {
-		const projectIdRaw = req.query.projectId;
-		const projectId =
-			projectIdRaw === undefined
-				? undefined
-				: projectIdRaw === null || projectIdRaw === '' || projectIdRaw === 'null'
-					? null
-					: String(projectIdRaw);
+		const projectId = await effectiveListProjectId(req);
 		const collections = await getAllCollections(req.user!.teamId, projectId);
 		res.json({ data: collections, total: collections.length });
 	}),
@@ -61,11 +77,21 @@ collectionsRouter.post(
 			res.status(400).json({ error: 'name is required' });
 			return;
 		}
+		const restricted = await getRestrictedProjectIdForMember(
+			req.user!.userId,
+			req.user!.teamId,
+			req.user!.role,
+		);
+		const bodyProjectId =
+			req.body.projectId === undefined || req.body.projectId === ''
+				? null
+				: String(req.body.projectId);
+		const projectId = restricted ?? bodyProjectId;
 		const collection = await createCollection(
 			{
 				...dto,
 				parentId: req.body.parentId ?? null,
-				projectId: req.body.projectId ?? null,
+				projectId,
 				assignedUserIds: req.body.assignedUserIds ?? [],
 			},
 			req.user!.teamId,
@@ -78,13 +104,7 @@ collectionsRouter.post(
 collectionsRouter.get(
 	'/:collectionId/children',
 	asyncHandler(async (req, res) => {
-		const projectIdRaw = req.query.projectId;
-		const projectId =
-			projectIdRaw === undefined
-				? undefined
-				: projectIdRaw === null || projectIdRaw === '' || projectIdRaw === 'null'
-					? null
-					: String(projectIdRaw);
+		const projectId = await effectiveListProjectId(req);
 		const children = await getCollectionChildren(
 			req.params.collectionId,
 			req.user!.teamId,
@@ -98,8 +118,17 @@ collectionsRouter.get(
 collectionsRouter.get(
 	'/:collectionId/tree',
 	asyncHandler(async (req, res) => {
+		const restricted = await getRestrictedProjectIdForMember(
+			req.user!.userId,
+			req.user!.teamId,
+			req.user!.role,
+		);
 		const tree = await getCollectionTree(req.params.collectionId, req.user!.teamId);
 		if (!tree) {
+			res.status(404).json({ error: 'Collection not found' });
+			return;
+		}
+		if (!collectionProjectMatches(restricted, tree.projectId)) {
 			res.status(404).json({ error: 'Collection not found' });
 			return;
 		}
@@ -111,11 +140,16 @@ collectionsRouter.get(
 collectionsRouter.get(
 	'/:collectionId/runs',
 	asyncHandler(async (req, res) => {
+		const restricted = await getRestrictedProjectIdForMember(
+			req.user!.userId,
+			req.user!.teamId,
+			req.user!.role,
+		);
 		const col = await getCollectionById(
 			req.params.collectionId,
 			req.user!.teamId,
 		);
-		if (!col) {
+		if (!col || !collectionProjectMatches(restricted, col.projectId)) {
 			res.status(404).json({ error: 'Collection not found' });
 			return;
 		}
@@ -133,11 +167,16 @@ collectionsRouter.get(
 collectionsRouter.get(
 	'/:collectionId',
 	asyncHandler(async (req, res) => {
+		const restricted = await getRestrictedProjectIdForMember(
+			req.user!.userId,
+			req.user!.teamId,
+			req.user!.role,
+		);
 		const col = await getCollectionById(
 			req.params.collectionId,
 			req.user!.teamId,
 		);
-		if (!col) {
+		if (!col || !collectionProjectMatches(restricted, col.projectId)) {
 			res.status(404).json({ error: 'Collection not found' });
 			return;
 		}
@@ -149,11 +188,32 @@ collectionsRouter.get(
 collectionsRouter.patch(
 	'/:collectionId',
 	asyncHandler(async (req, res) => {
+		const restricted = await getRestrictedProjectIdForMember(
+			req.user!.userId,
+			req.user!.teamId,
+			req.user!.role,
+		);
+		const existing = await getCollectionById(
+			req.params.collectionId,
+			req.user!.teamId,
+		);
+		if (!existing || !collectionProjectMatches(restricted, existing.projectId)) {
+			res.status(404).json({ error: 'Collection not found' });
+			return;
+		}
 		const dto = req.body as UpdateCollectionDto & {
 			parentId?: string | null;
 			assignedUserIds?: string[];
 			projectId?: string | null;
 		};
+		if (
+			restricted &&
+			dto.projectId !== undefined &&
+			String(dto.projectId ?? '') !== restricted
+		) {
+			res.status(400).json({ error: 'projectId cannot be changed for this account' });
+			return;
+		}
 		const updated = await updateCollection(
 			req.params.collectionId,
 			req.user!.teamId,
@@ -171,6 +231,19 @@ collectionsRouter.patch(
 collectionsRouter.delete(
 	'/:collectionId',
 	asyncHandler(async (req, res) => {
+		const restricted = await getRestrictedProjectIdForMember(
+			req.user!.userId,
+			req.user!.teamId,
+			req.user!.role,
+		);
+		const existing = await getCollectionById(
+			req.params.collectionId,
+			req.user!.teamId,
+		);
+		if (!existing || !collectionProjectMatches(restricted, existing.projectId)) {
+			res.status(404).json({ error: 'Collection not found' });
+			return;
+		}
 		const deleted = await deleteCollection(
 			req.params.collectionId,
 			req.user!.teamId,
@@ -193,11 +266,16 @@ collectionsRouter.delete(
 collectionsRouter.get(
 	'/:collectionId/tests',
 	asyncHandler(async (req, res) => {
+		const restricted = await getRestrictedProjectIdForMember(
+			req.user!.userId,
+			req.user!.teamId,
+			req.user!.role,
+		);
 		const col = await getCollectionById(
 			req.params.collectionId,
 			req.user!.teamId,
 		);
-		if (!col) {
+		if (!col || !collectionProjectMatches(restricted, col.projectId)) {
 			res.status(404).json({ error: 'Collection not found' });
 			return;
 		}
@@ -209,6 +287,19 @@ collectionsRouter.get(
 collectionsRouter.post(
 	'/:collectionId/tests',
 	asyncHandler(async (req, res) => {
+		const restricted = await getRestrictedProjectIdForMember(
+			req.user!.userId,
+			req.user!.teamId,
+			req.user!.role,
+		);
+		const col = await getCollectionById(
+			req.params.collectionId,
+			req.user!.teamId,
+		);
+		if (!col || !collectionProjectMatches(restricted, col.projectId)) {
+			res.status(404).json({ error: 'Collection not found' });
+			return;
+		}
 		const dto = req.body as CreateTestCaseDto;
 		if (!dto.name?.trim()) {
 			res.status(400).json({ error: 'name is required' });
@@ -240,6 +331,19 @@ collectionsRouter.post(
 collectionsRouter.get(
 	'/:collectionId/tests/:testId',
 	asyncHandler(async (req, res) => {
+		const restricted = await getRestrictedProjectIdForMember(
+			req.user!.userId,
+			req.user!.teamId,
+			req.user!.role,
+		);
+		const col = await getCollectionById(
+			req.params.collectionId,
+			req.user!.teamId,
+		);
+		if (!col || !collectionProjectMatches(restricted, col.projectId)) {
+			res.status(404).json({ error: 'Test case not found' });
+			return;
+		}
 		const tc = await getTestCaseById(
 			req.params.collectionId,
 			req.params.testId,
@@ -257,6 +361,19 @@ collectionsRouter.get(
 collectionsRouter.patch(
 	'/:collectionId/tests/:testId',
 	asyncHandler(async (req, res) => {
+		const restricted = await getRestrictedProjectIdForMember(
+			req.user!.userId,
+			req.user!.teamId,
+			req.user!.role,
+		);
+		const col = await getCollectionById(
+			req.params.collectionId,
+			req.user!.teamId,
+		);
+		if (!col || !collectionProjectMatches(restricted, col.projectId)) {
+			res.status(404).json({ error: 'Test case not found' });
+			return;
+		}
 		const dto = req.body as UpdateTestCaseDto;
 		const updated = await updateTestCase(
 			req.params.collectionId,
@@ -276,6 +393,19 @@ collectionsRouter.patch(
 collectionsRouter.delete(
 	'/:collectionId/tests/:testId',
 	asyncHandler(async (req, res) => {
+		const restricted = await getRestrictedProjectIdForMember(
+			req.user!.userId,
+			req.user!.teamId,
+			req.user!.role,
+		);
+		const col = await getCollectionById(
+			req.params.collectionId,
+			req.user!.teamId,
+		);
+		if (!col || !collectionProjectMatches(restricted, col.projectId)) {
+			res.status(404).json({ error: 'Test case not found' });
+			return;
+		}
 		const deleted = await deleteTestCase(
 			req.params.collectionId,
 			req.params.testId,

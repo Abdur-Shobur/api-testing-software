@@ -54,11 +54,21 @@ export interface TeamMemberUser {
 	role: 'owner' | 'admin' | 'member';
 }
 
+export interface TeamProjectRef {
+	id?: string;
+	_id: string;
+	name: string;
+}
+
 export interface Team {
 	id: string;
 	_id: string;
 	name: string;
 	slug: string;
 	ownerId: string;
-	members: { userId: TeamMemberUser; role: 'owner' | 'admin' | 'member' }[];
+	members: {
+		userId: TeamMemberUser;
+		role: 'owner' | 'admin' | 'member';
+		projectId?: string | TeamProjectRef | null;
+	}[];
 }

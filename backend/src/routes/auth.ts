@@ -1,14 +1,14 @@
 import bcrypt from 'bcryptjs';
 import { NextFunction, Request, Response, Router } from 'express';
+import { requireAuth, signAuthToken } from '../middleware/auth';
 import { Team } from '../models/Team';
 import { User } from '../models/User';
-import { requireAuth, signAuthToken } from '../middleware/auth';
 
 export const authRouter = Router();
 const saltRounds = 12;
 
 function asyncHandler(
-	fn: (req: Request, res: Response, next: NextFunction) => Promise<void>,
+	fn: (req: Request, res: Response, next: NextFunction) => Promise<void>
 ) {
 	return (req: Request, res: Response, next: NextFunction) => {
 		fn(req, res, next).catch(next);
@@ -75,7 +75,7 @@ authRouter.post(
 		});
 
 		res.status(201).json({ data: { token, user: publicUser(user) } });
-	}),
+	})
 );
 
 authRouter.post(
@@ -87,7 +87,10 @@ authRouter.post(
 			return;
 		}
 
-		const user = await User.findOne({ email: String(email).toLowerCase().trim() });
+		const user = await User.findOne({
+			email: String(email).toLowerCase().trim(),
+		});
+
 		if (!user || !(await bcrypt.compare(String(password), user.passwordHash))) {
 			res.status(401).json({ error: 'Invalid email or password' });
 			return;
@@ -105,7 +108,7 @@ authRouter.post(
 		});
 
 		res.json({ data: { token, user: publicUser(user) } });
-	}),
+	})
 );
 
 authRouter.get(
@@ -118,5 +121,5 @@ authRouter.get(
 			return;
 		}
 		res.json({ data: publicUser(user) });
-	}),
+	})
 );

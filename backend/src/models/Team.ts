@@ -1,9 +1,11 @@
-import { Document, Schema, model, models, Types } from 'mongoose';
+import { Document, model, models, Schema, Types } from 'mongoose';
 import { UserRole } from './User';
 
 export interface ITeamMember {
 	userId: Types.ObjectId;
 	role: UserRole;
+	/** When set (invitees with role member), API access is limited to this project. */
+	projectId?: Types.ObjectId | null;
 }
 
 export interface ITeam extends Document {
@@ -22,8 +24,13 @@ const TeamMemberSchema = new Schema<ITeamMember>(
 			enum: ['owner', 'admin', 'member'],
 			required: true,
 		},
+		projectId: {
+			type: Schema.Types.ObjectId,
+			ref: 'Project',
+			default: null,
+		},
 	},
-	{ _id: false },
+	{ _id: false }
 );
 
 const TeamSchema = new Schema<ITeam>(
@@ -37,7 +44,7 @@ const TeamSchema = new Schema<ITeam>(
 	{
 		toJSON: { virtuals: true },
 		toObject: { virtuals: true },
-	},
+	}
 );
 
 export const Team = models.Team || model<ITeam>('Team', TeamSchema);

@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import { Types } from 'mongoose';
+import { getRestrictedProjectIdForMember } from '../lib/memberProjectScope';
 import { Collection } from '../models/Collection';
 import { Documentation } from '../models/Documentation';
 import { Project } from '../models/Project';
@@ -18,7 +19,14 @@ function asyncHandler(
 projectsRouter.get(
 	'/',
 	asyncHandler(async (req, res) => {
-		const projects = await Project.find({ teamId: req.user!.teamId }).sort({
+		const restricted = await getRestrictedProjectIdForMember(
+			req.user!.userId,
+			req.user!.teamId,
+			req.user!.role,
+		);
+		const filter: Record<string, unknown> = { teamId: req.user!.teamId };
+		if (restricted) filter._id = new Types.ObjectId(restricted);
+		const projects = await Project.find(filter).sort({
 			createdAt: 1,
 		});
 		res.json({ data: projects, total: projects.length });
@@ -28,6 +36,15 @@ projectsRouter.get(
 projectsRouter.post(
 	'/',
 	asyncHandler(async (req, res) => {
+		const restricted = await getRestrictedProjectIdForMember(
+			req.user!.userId,
+			req.user!.teamId,
+			req.user!.role,
+		);
+		if (restricted) {
+			res.status(403).json({ error: 'Cannot create projects for this account' });
+			return;
+		}
 		const { name, description = '' } = req.body ?? {};
 		if (!name?.trim()) {
 			res.status(400).json({ error: 'name is required' });
@@ -49,11 +66,20 @@ projectsRouter.get(
 			res.status(400).json({ error: 'invalid projectId' });
 			return;
 		}
+		const restricted = await getRestrictedProjectIdForMember(
+			req.user!.userId,
+			req.user!.teamId,
+			req.user!.role,
+		);
 		const project = await Project.findOne({
 			_id: req.params.projectId,
 			teamId: req.user!.teamId,
 		});
 		if (!project) {
+			res.status(404).json({ error: 'Project not found' });
+			return;
+		}
+		if (restricted && String(project._id) !== restricted) {
 			res.status(404).json({ error: 'Project not found' });
 			return;
 		}
@@ -82,8 +108,17 @@ projectsRouter.patch(
 		if (baseUrl !== undefined) update.baseUrl = String(baseUrl ?? '');
 		if (auth !== undefined) update.auth = auth;
 
+		const restricted = await getRestrictedProjectIdForMember(
+			req.user!.userId,
+			req.user!.teamId,
+			req.user!.role,
+		);
 		const project = await Project.findOneAndUpdate(
-			{ _id: req.params.projectId, teamId: req.user!.teamId },
+			{
+				_id: req.params.projectId,
+				teamId: req.user!.teamId,
+				...(restricted ? { _id: new Types.ObjectId(restricted) } : {}),
+			},
 			update,
 			{ new: true },
 		);
@@ -102,9 +137,15 @@ projectsRouter.delete(
 			res.status(400).json({ error: 'invalid projectId' });
 			return;
 		}
+		const restricted = await getRestrictedProjectIdForMember(
+			req.user!.userId,
+			req.user!.teamId,
+			req.user!.role,
+		);
 		const result = await Project.deleteOne({
 			_id: req.params.projectId,
 			teamId: req.user!.teamId,
+			...(restricted ? { _id: new Types.ObjectId(restricted) } : {}),
 		});
 		if (result.deletedCount !== 1) {
 			res.status(404).json({ error: 'Project not found' });
@@ -119,6 +160,15 @@ projectsRouter.get(
 	asyncHandler(async (req, res) => {
 		if (!Types.ObjectId.isValid(req.params.projectId)) {
 			res.status(400).json({ error: 'invalid projectId' });
+			return;
+		}
+		const restricted = await getRestrictedProjectIdForMember(
+			req.user!.userId,
+			req.user!.teamId,
+			req.user!.role,
+		);
+		if (restricted && req.params.projectId !== restricted) {
+			res.status(404).json({ error: 'Project not found' });
 			return;
 		}
 		const project = await Project.exists({

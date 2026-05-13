@@ -1,6 +1,7 @@
 import { Team } from '@/type';
 import { apiSlice } from '../api/apiSlice';
 import { Collection } from '../collections/type';
+import { Project } from '../projects/type';
 
 export const teamApi = apiSlice.injectEndpoints({
 	endpoints: (builder) => ({
@@ -14,7 +15,7 @@ export const teamApi = apiSlice.injectEndpoints({
 
 		InviteTeamMember: builder.mutation<
 			{ data: Team },
-			{ email: string; role: 'admin' | 'member' }
+			{ email: string; role: 'admin' | 'member'; projectId: string }
 		>({
 			query: (body) => ({
 				url: '/teams/invite',
@@ -39,6 +40,14 @@ export const teamApi = apiSlice.injectEndpoints({
 			}),
 			providesTags: ['COLLECTIONS'],
 		}),
+
+		GetSharedProjects: builder.query<{ data: Project[]; total: number }, void>({
+			query: () => ({
+				url: '/teams/shared-projects',
+				method: 'GET',
+			}),
+			providesTags: ['PROJECTS'],
+		}),
 	}),
 });
 
@@ -47,4 +56,5 @@ export const {
 	useInviteTeamMemberMutation,
 	useRemoveTeamMemberMutation,
 	useGetMyTeamCollectionsQuery,
+	useGetSharedProjectsQuery,
 } = teamApi;

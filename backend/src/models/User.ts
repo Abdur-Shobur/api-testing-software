@@ -1,4 +1,4 @@
-import { Document, Schema, model, models, Types } from 'mongoose';
+import { Document, model, models, Schema, Types } from 'mongoose';
 
 export type UserRole = 'owner' | 'admin' | 'member';
 
@@ -33,7 +33,7 @@ const UserSchema = new Schema<IUser>(
 	{
 		toJSON: { virtuals: true },
 		toObject: { virtuals: true },
-	},
+	}
 );
 
 export const User = models.User || model<IUser>('User', UserSchema);
