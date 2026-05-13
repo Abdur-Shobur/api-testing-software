@@ -2,6 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.collectionsRouter = void 0;
 const express_1 = require("express");
+const mongoose_1 = require("mongoose");
+const memberProjectScope_1 = require("../lib/memberProjectScope");
 const CollectionRun_1 = require("../models/CollectionRun");
 const store_1 = require("../store");
 exports.collectionsRouter = (0, express_1.Router)();
@@ -11,17 +13,26 @@ function asyncHandler(fn) {
         fn(req, res, next).catch(next);
     };
 }
+function parseQueryProjectId(req) {
+    const projectIdRaw = req.query.projectId;
+    if (projectIdRaw === undefined)
+        return undefined;
+    if (projectIdRaw === null || projectIdRaw === '' || projectIdRaw === 'null')
+        return null;
+    return String(projectIdRaw);
+}
+async function effectiveListProjectId(req) {
+    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
+    if (restricted)
+        return restricted;
+    return parseQueryProjectId(req);
+}
 // ═══════════════════════════════════════════════════════════════════════════
 // COLLECTIONS
 // ═══════════════════════════════════════════════════════════════════════════
 // GET /collections
 exports.collectionsRouter.get('/', asyncHandler(async (req, res) => {
-    const projectIdRaw = req.query.projectId;
-    const projectId = projectIdRaw === undefined
-        ? undefined
-        : projectIdRaw === null || projectIdRaw === '' || projectIdRaw === 'null'
-            ? null
-            : String(projectIdRaw);
+    const projectId = await effectiveListProjectId(req);
     const collections = await (0, store_1.getAllCollections)(req.user.teamId, projectId);
     res.json({ data: collections, total: collections.length });
 }));
@@ -32,29 +43,44 @@ exports.collectionsRouter.post('/', asyncHandler(async (req, res) => {
         res.status(400).json({ error: 'name is required' });
         return;
     }
+    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
+    const bodyProjectId = req.body.projectId === undefined || req.body.projectId === ''
+        ? null
+        : String(req.body.projectId);
+    const projectId = restricted ?? bodyProjectId;
+    if (!projectId || !mongoose_1.Types.ObjectId.isValid(projectId)) {
+        res.status(400).json({ error: 'valid projectId is required' });
+        return;
+    }
     const collection = await (0, store_1.createCollection)({
         ...dto,
         parentId: req.body.parentId ?? null,
-        projectId: req.body.projectId ?? null,
+        projectId,
         assignedUserIds: req.body.assignedUserIds ?? [],
-    }, req.user.teamId);
+    }, req.user.teamId, req.user.userId);
+    if (!collection) {
+        res.status(400).json({
+            error: 'Could not create collection (invalid parent or project)',
+        });
+        return;
+    }
     res.status(201).json({ data: collection, success: true });
 }));
 // GET /collections/:collectionId/children
 exports.collectionsRouter.get('/:collectionId/children', asyncHandler(async (req, res) => {
-    const projectIdRaw = req.query.projectId;
-    const projectId = projectIdRaw === undefined
-        ? undefined
-        : projectIdRaw === null || projectIdRaw === '' || projectIdRaw === 'null'
-            ? null
-            : String(projectIdRaw);
+    const projectId = await effectiveListProjectId(req);
     const children = await (0, store_1.getCollectionChildren)(req.params.collectionId, req.user.teamId, projectId);
     res.json({ data: children, total: children.length });
 }));
 // GET /collections/:collectionId/tree
 exports.collectionsRouter.get('/:collectionId/tree', asyncHandler(async (req, res) => {
+    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
     const tree = await (0, store_1.getCollectionTree)(req.params.collectionId, req.user.teamId);
     if (!tree) {
+        res.status(404).json({ error: 'Collection not found' });
+        return;
+    }
+    if (!(0, memberProjectScope_1.collectionProjectMatches)(restricted, tree.projectId)) {
         res.status(404).json({ error: 'Collection not found' });
         return;
     }
@@ -62,8 +88,9 @@ exports.collectionsRouter.get('/:collectionId/tree', asyncHandler(async (req, re
 }));
 // GET /collections/:collectionId/runs
 exports.collectionsRouter.get('/:collectionId/runs', asyncHandler(async (req, res) => {
+    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
     const col = await (0, store_1.getCollectionById)(req.params.collectionId, req.user.teamId);
-    if (!col) {
+    if (!col || !(0, memberProjectScope_1.collectionProjectMatches)(restricted, col.projectId)) {
         res.status(404).json({ error: 'Collection not found' });
         return;
     }
@@ -77,8 +104,9 @@ exports.collectionsRouter.get('/:collectionId/runs', asyncHandler(async (req, re
 }));
 // GET /collections/:collectionId
 exports.collectionsRouter.get('/:collectionId', asyncHandler(async (req, res) => {
+    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
     const col = await (0, store_1.getCollectionById)(req.params.collectionId, req.user.teamId);
-    if (!col) {
+    if (!col || !(0, memberProjectScope_1.collectionProjectMatches)(restricted, col.projectId)) {
         res.status(404).json({ error: 'Collection not found' });
         return;
     }
@@ -86,7 +114,19 @@ exports.collectionsRouter.get('/:collectionId', asyncHandler(async (req, res) =>
 }));
 // PATCH /collections/:collectionId
 exports.collectionsRouter.patch('/:collectionId', asyncHandler(async (req, res) => {
+    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
+    const existing = await (0, store_1.getCollectionById)(req.params.collectionId, req.user.teamId);
+    if (!existing || !(0, memberProjectScope_1.collectionProjectMatches)(restricted, existing.projectId)) {
+        res.status(404).json({ error: 'Collection not found' });
+        return;
+    }
     const dto = req.body;
+    if (restricted &&
+        dto.projectId !== undefined &&
+        String(dto.projectId ?? '') !== restricted) {
+        res.status(400).json({ error: 'projectId cannot be changed for this account' });
+        return;
+    }
     const updated = await (0, store_1.updateCollection)(req.params.collectionId, req.user.teamId, dto);
     if (!updated) {
         res.status(404).json({ error: 'Collection not found' });
@@ -96,6 +136,12 @@ exports.collectionsRouter.patch('/:collectionId', asyncHandler(async (req, res) 
 }));
 // DELETE /collections/:collectionId
 exports.collectionsRouter.delete('/:collectionId', asyncHandler(async (req, res) => {
+    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
+    const existing = await (0, store_1.getCollectionById)(req.params.collectionId, req.user.teamId);
+    if (!existing || !(0, memberProjectScope_1.collectionProjectMatches)(restricted, existing.projectId)) {
+        res.status(404).json({ error: 'Collection not found' });
+        return;
+    }
     const deleted = await (0, store_1.deleteCollection)(req.params.collectionId, req.user.teamId);
     if (!deleted) {
         res.status(404).json({ error: 'Collection not found' });
@@ -110,8 +156,9 @@ exports.collectionsRouter.delete('/:collectionId', asyncHandler(async (req, res)
 // ═══════════════════════════════════════════════════════════════════════════
 // GET /collections/:collectionId/tests
 exports.collectionsRouter.get('/:collectionId/tests', asyncHandler(async (req, res) => {
+    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
     const col = await (0, store_1.getCollectionById)(req.params.collectionId, req.user.teamId);
-    if (!col) {
+    if (!col || !(0, memberProjectScope_1.collectionProjectMatches)(restricted, col.projectId)) {
         res.status(404).json({ error: 'Collection not found' });
         return;
     }
@@ -119,6 +166,12 @@ exports.collectionsRouter.get('/:collectionId/tests', asyncHandler(async (req, r
 }));
 // POST /collections/:collectionId/tests
 exports.collectionsRouter.post('/:collectionId/tests', asyncHandler(async (req, res) => {
+    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
+    const col = await (0, store_1.getCollectionById)(req.params.collectionId, req.user.teamId);
+    if (!col || !(0, memberProjectScope_1.collectionProjectMatches)(restricted, col.projectId)) {
+        res.status(404).json({ error: 'Collection not found' });
+        return;
+    }
     const dto = req.body;
     if (!dto.name?.trim()) {
         res.status(400).json({ error: 'name is required' });
@@ -141,6 +194,12 @@ exports.collectionsRouter.post('/:collectionId/tests', asyncHandler(async (req, 
 }));
 // GET /collections/:collectionId/tests/:testId
 exports.collectionsRouter.get('/:collectionId/tests/:testId', asyncHandler(async (req, res) => {
+    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
+    const col = await (0, store_1.getCollectionById)(req.params.collectionId, req.user.teamId);
+    if (!col || !(0, memberProjectScope_1.collectionProjectMatches)(restricted, col.projectId)) {
+        res.status(404).json({ error: 'Test case not found' });
+        return;
+    }
     const tc = await (0, store_1.getTestCaseById)(req.params.collectionId, req.params.testId, req.user.teamId);
     if (!tc) {
         res.status(404).json({ error: 'Test case not found' });
@@ -150,6 +209,12 @@ exports.collectionsRouter.get('/:collectionId/tests/:testId', asyncHandler(async
 }));
 // PATCH /collections/:collectionId/tests/:testId
 exports.collectionsRouter.patch('/:collectionId/tests/:testId', asyncHandler(async (req, res) => {
+    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
+    const col = await (0, store_1.getCollectionById)(req.params.collectionId, req.user.teamId);
+    if (!col || !(0, memberProjectScope_1.collectionProjectMatches)(restricted, col.projectId)) {
+        res.status(404).json({ error: 'Test case not found' });
+        return;
+    }
     const dto = req.body;
     const updated = await (0, store_1.updateTestCase)(req.params.collectionId, req.params.testId, req.user.teamId, dto);
     if (!updated) {
@@ -160,6 +225,12 @@ exports.collectionsRouter.patch('/:collectionId/tests/:testId', asyncHandler(asy
 }));
 // DELETE /collections/:collectionId/tests/:testId
 exports.collectionsRouter.delete('/:collectionId/tests/:testId', asyncHandler(async (req, res) => {
+    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
+    const col = await (0, store_1.getCollectionById)(req.params.collectionId, req.user.teamId);
+    if (!col || !(0, memberProjectScope_1.collectionProjectMatches)(restricted, col.projectId)) {
+        res.status(404).json({ error: 'Test case not found' });
+        return;
+    }
     const deleted = await (0, store_1.deleteTestCase)(req.params.collectionId, req.params.testId, req.user.teamId);
     if (!deleted) {
         res.status(404).json({ error: 'Test case not found' });

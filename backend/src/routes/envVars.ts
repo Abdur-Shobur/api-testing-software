@@ -19,7 +19,7 @@ envVarsRouter.get(
 		const restricted = await getRestrictedProjectIdForMember(
 			req.user!.userId,
 			req.user!.teamId,
-			req.user!.role,
+			req.user!.teamRole,
 		);
 		const projectIdRaw = req.query.projectId;
 		const projectId =
@@ -59,7 +59,7 @@ envVarsRouter.post(
 		const restricted = await getRestrictedProjectIdForMember(
 			req.user!.userId,
 			req.user!.teamId,
-			req.user!.role,
+			req.user!.teamRole,
 		);
 		let bodyPid: string | null | undefined;
 		if (projectId === undefined) bodyPid = undefined;
@@ -98,7 +98,7 @@ envVarsRouter.delete(
 		const restricted = await getRestrictedProjectIdForMember(
 			req.user!.userId,
 			req.user!.teamId,
-			req.user!.role,
+			req.user!.teamRole,
 		);
 		const projectIdRaw = req.query.projectId;
 		const projectId =

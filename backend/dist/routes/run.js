@@ -2,6 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runRouter = void 0;
 const express_1 = require("express");
+const mongoose_1 = require("mongoose");
+const memberProjectScope_1 = require("../lib/memberProjectScope");
 const store_1 = require("../store");
 const runner_1 = require("../runner");
 const EnvironmentVariable_1 = require("../models/EnvironmentVariable");
@@ -13,8 +15,15 @@ function asyncHandler(fn) {
         fn(req, res, next).catch(next);
     };
 }
-async function getRunnerEnv(teamId) {
-    const vars = await EnvironmentVariable_1.EnvironmentVariable.find({ teamId });
+async function getRunnerEnv(teamId, restrictedProjectId) {
+    const filter = { teamId };
+    if (restrictedProjectId) {
+        filter.$or = [
+            { projectId: null },
+            { projectId: new mongoose_1.Types.ObjectId(restrictedProjectId) },
+        ];
+    }
+    const vars = await EnvironmentVariable_1.EnvironmentVariable.find(filter);
     return vars.reduce((acc, envVar) => {
         acc[envVar.key] = envVar.value;
         return acc;
@@ -40,6 +49,11 @@ exports.runRouter.post('/:collectionId/:testId', asyncHandler(async (req, res) =
         res.status(404).json({ error: 'Collection not found' });
         return;
     }
+    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
+    if (!(0, memberProjectScope_1.collectionProjectMatches)(restricted, col.projectId)) {
+        res.status(404).json({ error: 'Collection not found' });
+        return;
+    }
     const tc = col.testCases.find((t) => t.id === req.params.testId);
     if (!tc) {
         res.status(404).json({ error: 'Test case not found' });
@@ -50,7 +64,7 @@ exports.runRouter.post('/:collectionId/:testId', asyncHandler(async (req, res) =
     const merged = dto.request
         ? { ...tc, request: { ...tc.request, ...dto.request } }
         : tc;
-    const env = await getRunnerEnv(req.user.teamId);
+    const env = await getRunnerEnv(req.user.teamId, restricted);
     const result = await (0, runner_1.runTestCase)(merged, env);
     await saveTestRun(result, col.id, req.user.userId);
     const httpStatus = result.status === 'pass' ? 200 : result.status === 'error' ? 502 : 200;
@@ -64,6 +78,11 @@ exports.runRouter.post('/:collectionId', asyncHandler(async (req, res) => {
         res.status(404).json({ error: 'Collection not found' });
         return;
     }
+    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
+    if (!(0, memberProjectScope_1.collectionProjectMatches)(restricted, col.projectId)) {
+        res.status(404).json({ error: 'Collection not found' });
+        return;
+    }
     if (col.testCases.length === 0) {
         res.status(400).json({ error: 'Collection has no test cases' });
         return;
@@ -71,7 +90,7 @@ exports.runRouter.post('/:collectionId', asyncHandler(async (req, res) => {
     const startTime = Date.now();
     const dto = (req.body ?? {});
     const mode = dto.mode ?? 'parallel';
-    const env = await getRunnerEnv(req.user.teamId);
+    const env = await getRunnerEnv(req.user.teamId, restricted);
     const results = [];
     if (mode === 'sequential') {
         for (const tc of col.testCases) {

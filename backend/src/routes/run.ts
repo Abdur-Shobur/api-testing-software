@@ -65,7 +65,7 @@ runRouter.post(
     const restricted = await getRestrictedProjectIdForMember(
       req.user!.userId,
       req.user!.teamId,
-      req.user!.role,
+      req.user!.teamRole,
     );
     if (!collectionProjectMatches(restricted, col.projectId)) {
       res.status(404).json({ error: 'Collection not found' });
@@ -100,7 +100,7 @@ runRouter.post(
     const restricted = await getRestrictedProjectIdForMember(
       req.user!.userId,
       req.user!.teamId,
-      req.user!.role,
+      req.user!.teamRole,
     );
     if (!collectionProjectMatches(restricted, col.projectId)) {
       res.status(404).json({ error: 'Collection not found' });

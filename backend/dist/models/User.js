@@ -17,7 +17,11 @@ const UserSchema = new mongoose_1.Schema({
         enum: ['owner', 'admin', 'member'],
         default: 'member',
     },
-    teamId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team' },
+    status: {
+        type: String,
+        enum: ['active', 'blocked'],
+        default: 'active',
+    },
     createdAt: { type: Date, default: Date.now },
 }, {
     toJSON: { virtuals: true },

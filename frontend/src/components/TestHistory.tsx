@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/accordion';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { cn } from '@/lib/utils';
-import { useGetTestHistoryQuery } from '@/store/features/test-case/api-slice';
+import { useGetTestHistoryQuery } from '@/store/features/test-case/test-case-api-slice';
 import { AssertionResult, TestRun } from '@/store/features/test-case/type';
 import { Clock } from 'lucide-react';
 
@@ -20,13 +20,13 @@ function AssertionRow({ a }: { a: AssertionResult }) {
 				'flex items-start gap-3 px-3 py-2 rounded-lg border',
 				pass
 					? 'border-emerald-400/20 bg-emerald-400/5'
-					: 'border-rose-400/20 bg-rose-400/5'
+					: 'border-rose-400/20 bg-rose-400/5',
 			)}
 		>
 			<div
 				className={cn(
 					'mt-0.5 w-2 h-2 rounded-full shrink-0',
-					pass ? 'bg-emerald-400' : 'bg-rose-400'
+					pass ? 'bg-emerald-400' : 'bg-rose-400',
 				)}
 			/>
 			<div className="flex-1 min-w-0">
@@ -50,7 +50,7 @@ function AssertionRow({ a }: { a: AssertionResult }) {
 						<pre
 							className={cn(
 								'font-mono text-[10px] whitespace-pre-wrap break-all',
-								pass ? 'text-zinc-300' : 'text-rose-300'
+								pass ? 'text-zinc-300' : 'text-rose-300',
 							)}
 						>
 							<code>{JSON.stringify(a.actual, null, 2)}</code>

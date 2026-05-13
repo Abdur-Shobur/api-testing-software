@@ -1,7 +1,7 @@
-import { Team } from '@/type';
+import type { Team, TeamMemberRow } from '@/type';
 import { apiSlice } from '../api/apiSlice';
-import { Collection } from '../collections/type';
-import { Project } from '../projects/type';
+import { Collection } from '../collection/collection-type';
+import { Project } from '../project/type';
 
 export const teamApi = apiSlice.injectEndpoints({
 	endpoints: (builder) => ({
@@ -14,8 +14,8 @@ export const teamApi = apiSlice.injectEndpoints({
 		}),
 
 		InviteTeamMember: builder.mutation<
-			{ data: Team },
-			{ email: string; role: 'admin' | 'member'; projectId: string }
+			{ data: TeamMemberRow[] },
+			{ email: string; role: 'admin' | 'editor' | 'viewer'; projectId: string }
 		>({
 			query: (body) => ({
 				url: '/teams/invite',

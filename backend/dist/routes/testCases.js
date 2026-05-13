@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.testCasesRouter = void 0;
 const express_1 = require("express");
+const memberProjectScope_1 = require("../lib/memberProjectScope");
 const Collection_1 = require("../models/Collection");
 const TestCase_1 = require("../models/TestCase");
 const TestRun_1 = require("../models/TestRun");
@@ -17,11 +18,17 @@ exports.testCasesRouter.get('/:testId/history', asyncHandler(async (req, res) =>
         res.status(404).json({ error: 'Test case not found' });
         return;
     }
-    const collection = await Collection_1.Collection.exists({
+    const collection = await Collection_1.Collection.findOne({
         _id: testCase.collectionId,
         teamId: req.user.teamId,
-    });
+        deletedAt: null,
+    }).lean();
     if (!collection) {
+        res.status(404).json({ error: 'Test case not found' });
+        return;
+    }
+    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
+    if (!(0, memberProjectScope_1.collectionProjectMatches)(restricted, collection.projectId ? String(collection.projectId) : null)) {
         res.status(404).json({ error: 'Test case not found' });
         return;
     }

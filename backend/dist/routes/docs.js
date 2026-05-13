@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.docsRouter = void 0;
 const express_1 = require("express");
+const memberProjectScope_1 = require("../lib/memberProjectScope");
 const Collection_1 = require("../models/Collection");
 const Documentation_1 = require("../models/Documentation");
 exports.docsRouter = (0, express_1.Router)({ mergeParams: true });
@@ -11,11 +12,18 @@ function asyncHandler(fn) {
     };
 }
 async function assertCollection(req, res) {
-    const exists = await Collection_1.Collection.exists({
+    const col = await Collection_1.Collection.findOne({
         _id: req.params.collectionId,
         teamId: req.user.teamId,
-    });
-    if (!exists) {
+        deletedAt: null,
+    }).lean();
+    if (!col) {
+        res.status(404).json({ error: 'Collection not found' });
+        return false;
+    }
+    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
+    const cp = col.projectId ? String(col.projectId) : null;
+    if (restricted && cp !== restricted) {
         res.status(404).json({ error: 'Collection not found' });
         return false;
     }

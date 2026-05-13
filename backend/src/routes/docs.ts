@@ -18,6 +18,7 @@ async function assertCollection(req: Request, res: Response): Promise<boolean> {
 	const col = await Collection.findOne({
 		_id: req.params.collectionId,
 		teamId: req.user!.teamId,
+		deletedAt: null,
 	}).lean<{ projectId?: Types.ObjectId | null }>();
 	if (!col) {
 		res.status(404).json({ error: 'Collection not found' });
@@ -26,7 +27,7 @@ async function assertCollection(req: Request, res: Response): Promise<boolean> {
 	const restricted = await getRestrictedProjectIdForMember(
 		req.user!.userId,
 		req.user!.teamId,
-		req.user!.role,
+		req.user!.teamRole,
 	);
 	const cp = col.projectId ? String(col.projectId) : null;
 	if (restricted && cp !== restricted) {

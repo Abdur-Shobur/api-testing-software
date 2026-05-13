@@ -3,20 +3,20 @@
 import { Sidebar } from '@/components/sections/sidebar';
 import { TestsPanel } from '@/components/sections/test-panel';
 import { TopBar } from '@/components/sections/top-bar';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { DetailPanel } from '@/components/sections/detail-panel';
 import { RunAllPanel } from '@/components/sections/run-all-panel';
 import {
 	useGetCollectionQuery,
 	useGetCollectionsQuery,
-} from '@/store/features/collections/api-slice';
-import { Collection } from '@/store/features/collections/type';
-import { useGetProjectsQuery } from '@/store/features/projects/api-slice';
+} from '@/store/features/collection/collection-api-slice';
+import { Collection } from '@/store/features/collection/collection-type';
+import { useGetProjectsQuery } from '@/store/features/project/api-slice';
 import {
 	useRunCollectionMutation,
 	useRunTestCaseMutation,
-} from '@/store/features/test-case/api-slice';
+} from '@/store/features/test-case/test-case-api-slice';
 import { iTestCase } from '@/store/features/test-case/type';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -32,9 +32,12 @@ export default function CollectionRunnerPage() {
 
 	// selected collection (from URL)
 	const selectedColId = params.collectionId;
-	const { data: selectedCollectionResponse } = useGetCollectionQuery(selectedColId, {
-		skip: !selectedColId,
-	});
+	const { data: selectedCollectionResponse } = useGetCollectionQuery(
+		selectedColId,
+		{
+			skip: !selectedColId,
+		},
+	);
 
 	// infer project from collection (so sidebar stays scoped correctly)
 	const [projectId, setProjectId] = useState<string | null>(null);
@@ -89,7 +92,8 @@ export default function CollectionRunnerPage() {
 		setColRunResult(null);
 	}, [selectedTestId, selectedColId]);
 
-	const selectedCollection = (selectedCollectionResponse?.data ?? null) as Collection | null;
+	const selectedCollection = (selectedCollectionResponse?.data ??
+		null) as Collection | null;
 	const selectedTest: iTestCase | null =
 		selectedCollection?.testCases.find((t) => t.id === selectedTestId) ?? null;
 
@@ -164,4 +168,3 @@ export default function CollectionRunnerPage() {
 		</div>
 	);
 }
-

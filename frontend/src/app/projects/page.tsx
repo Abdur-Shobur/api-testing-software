@@ -1,14 +1,14 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Btn } from '@/components/ui/main-btn';
 import { Input } from '@/components/ui/input';
+import { Btn } from '@/components/ui/main-btn';
 import { Textarea } from '@/components/ui/textarea';
 import {
 	useCreateProjectMutation,
 	useDeleteProjectMutation,
 	useGetProjectsQuery,
-} from '@/store/features/projects/api-slice';
+} from '@/store/features/project/api-slice';
 import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -48,10 +48,7 @@ export default function ProjectsPage() {
 			<div className="max-w-4xl mx-auto space-y-6">
 				<div className="flex items-center justify-between">
 					<h1 className="text-lg font-semibold">Projects</h1>
-					<Link
-						href="/"
-						className="text-xs text-zinc-400 hover:text-zinc-200"
-					>
+					<Link href="/" className="text-xs text-zinc-400 hover:text-zinc-200">
 						Back to runner
 					</Link>
 				</div>
@@ -130,4 +127,3 @@ export default function ProjectsPage() {
 		</div>
 	);
 }
-

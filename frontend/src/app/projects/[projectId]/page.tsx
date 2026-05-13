@@ -5,7 +5,6 @@ import { ProjectDocumentation } from '@/components/ProjectDocumentation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Btn } from '@/components/ui/main-btn';
-import { Textarea } from '@/components/ui/textarea';
 import {
 	Select,
 	SelectContent,
@@ -13,10 +12,15 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import {
 	useGetProjectQuery,
 	useUpdateProjectMutation,
-} from '@/store/features/projects/api-slice';
+} from '@/store/features/project/api-slice';
+import {
+	getProjectSettings,
+	type ProjectAuthSettings,
+} from '@/store/features/project/type';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -36,9 +40,9 @@ export default function ProjectDetailPage() {
 	const [name, setName] = useState('');
 	const [description, setDescription] = useState('');
 	const [baseUrl, setBaseUrl] = useState('');
-	const [authType, setAuthType] = useState<'none' | 'bearer' | 'basic' | 'apiKey'>(
-		'none',
-	);
+	const [authType, setAuthType] = useState<
+		'none' | 'bearer' | 'basic' | 'apiKey'
+	>('none');
 	const [bearerToken, setBearerToken] = useState('');
 	const [basicUsername, setBasicUsername] = useState('');
 	const [basicPassword, setBasicPassword] = useState('');
@@ -50,21 +54,37 @@ export default function ProjectDetailPage() {
 		if (!project) return;
 		setName(project.name ?? '');
 		setDescription(project.description ?? '');
-		setBaseUrl(project.baseUrl ?? '');
-		const type = project.auth?.type ?? 'none';
+		const settings = getProjectSettings(project);
+		const authFromSettings = settings?.auth as ProjectAuthSettings | undefined;
+		setBaseUrl(settings?.baseUrl ?? project.baseUrl ?? '');
+		const type = authFromSettings?.type ?? project.auth?.type ?? 'none';
 		setAuthType(type);
-		setBearerToken(project.auth?.bearerToken ?? '');
-		setBasicUsername(project.auth?.username ?? '');
-		setBasicPassword(project.auth?.password ?? '');
-		setApiKeyKey(project.auth?.apiKeyKey ?? '');
-		setApiKeyValue(project.auth?.apiKeyValue ?? '');
-		setApiKeyIn(project.auth?.apiKeyIn ?? 'header');
+		setBearerToken(
+			authFromSettings?.bearerToken ?? project.auth?.bearerToken ?? '',
+		);
+		setBasicUsername(
+			authFromSettings?.username ?? project.auth?.username ?? '',
+		);
+		setBasicPassword(
+			authFromSettings?.password ?? project.auth?.password ?? '',
+		);
+		setApiKeyKey(authFromSettings?.apiKeyKey ?? project.auth?.apiKeyKey ?? '');
+		setApiKeyValue(
+			authFromSettings?.apiKeyValue ?? project.auth?.apiKeyValue ?? '',
+		);
+		setApiKeyIn(
+			authFromSettings?.apiKeyIn ?? project.auth?.apiKeyIn ?? 'header',
+		);
 	}, [project]);
 
 	const authPayload = useMemo(() => {
 		if (authType === 'bearer') return { type: 'bearer', bearerToken };
 		if (authType === 'basic')
-			return { type: 'basic', username: basicUsername, password: basicPassword };
+			return {
+				type: 'basic',
+				username: basicUsername,
+				password: basicPassword,
+			};
 		if (authType === 'apiKey')
 			return {
 				type: 'apiKey',
@@ -93,7 +113,7 @@ export default function ProjectDetailPage() {
 					description,
 					baseUrl,
 					auth: authPayload,
-				} as any,
+				},
 			}).unwrap();
 			toast.success('Project updated');
 		} catch {
@@ -107,7 +127,7 @@ export default function ProjectDetailPage() {
 				<div className="flex items-center justify-between">
 					<div>
 						<h1 className="text-lg font-semibold">
-							{isLoading ? 'Loading…' : project?.name ?? 'Project'}
+							{isLoading ? 'Loading…' : (project?.name ?? 'Project')}
 						</h1>
 						<div className="text-xs text-zinc-500">
 							<Link href="/projects" className="hover:text-zinc-300">
@@ -189,7 +209,10 @@ export default function ProjectDetailPage() {
 
 							<div className="space-y-2">
 								<div className="text-xs text-zinc-400">Authorization</div>
-								<Select value={authType} onValueChange={(v) => setAuthType(v as any)}>
+								<Select
+									value={authType}
+									onValueChange={(v) => setAuthType(v as any)}
+								>
 									<SelectTrigger className="w-full">
 										<SelectValue />
 									</SelectTrigger>
@@ -271,10 +294,7 @@ export default function ProjectDetailPage() {
 							)}
 
 							<div className="pt-2">
-								<Btn
-									variant="primary"
-									onClick={() => void onSave()}
-								>
+								<Btn variant="primary" onClick={() => void onSave()}>
 									{isSaving ? 'Saving…' : 'Save'}
 								</Btn>
 							</div>
@@ -307,4 +327,3 @@ export default function ProjectDetailPage() {
 		</div>
 	);
 }
-

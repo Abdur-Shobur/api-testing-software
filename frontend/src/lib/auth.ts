@@ -2,16 +2,55 @@
 
 import axios from 'axios';
 import { env } from '@/lib';
+import { decodeJwtPayload } from '@/lib/jwtPayload';
 
 export const TOKEN_KEY = 'api_runner_token';
+
+/** Global account role from `User` (not team permissions). */
+export type UserRole = 'owner' | 'admin' | 'member';
+
+/** Team-scoped role from JWT (`teamRole`), same as backend `TeamMember.role`. */
+export type TeamRole = 'owner' | 'admin' | 'editor' | 'viewer';
 
 export interface AuthUser {
 	id: string;
 	_id: string;
 	name: string;
 	email: string;
-	role: 'owner' | 'admin' | 'member';
-	teamId: string;
+	role: UserRole;
+	createdAt?: string;
+	/** Present when merged from JWT after login or session refresh. */
+	teamId?: string;
+	teamRole?: TeamRole;
+}
+
+function normalizeTeamRoleFromJwt(raw: unknown): TeamRole | undefined {
+	if (raw === 'member') return 'viewer';
+	if (
+		raw === 'viewer' ||
+		raw === 'editor' ||
+		raw === 'admin' ||
+		raw === 'owner'
+	) {
+		return raw;
+	}
+	return undefined;
+}
+
+export function mergeAuthUserWithToken(
+	user: AuthUser,
+	token: string | null,
+): AuthUser {
+	if (!token) return user;
+	const payload = decodeJwtPayload(token);
+	if (!payload) return user;
+	const teamId =
+		typeof payload.teamId === 'string' ? payload.teamId : user.teamId;
+	const teamRole =
+		normalizeTeamRoleFromJwt(payload.teamRole) ??
+		normalizeTeamRoleFromJwt(payload.role) ??
+		user.teamRole;
+	return { ...user, teamId, teamRole };
 }
 
 export function getToken(): string | null {
@@ -32,7 +71,10 @@ export async function loginRequest(email: string, password: string) {
 		data: { token: string; user: AuthUser };
 	}>(`${env.baseAPI}/auth/login`, { email, password });
 	setToken(data.data.token);
-	return data.data;
+	return {
+		token: data.data.token,
+		user: mergeAuthUserWithToken(data.data.user, data.data.token),
+	};
 }
 
 export async function registerRequest(
@@ -44,7 +86,10 @@ export async function registerRequest(
 		data: { token: string; user: AuthUser };
 	}>(`${env.baseAPI}/auth/register`, { name, email, password });
 	setToken(data.data.token);
-	return data.data;
+	return {
+		token: data.data.token,
+		user: mergeAuthUserWithToken(data.data.user, data.data.token),
+	};
 }
 
 export async function meRequest() {
@@ -52,5 +97,5 @@ export async function meRequest() {
 	const { data } = await axios.get<{ data: AuthUser }>(`${env.baseAPI}/auth/me`, {
 		headers: token ? { Authorization: `Bearer ${token}` } : undefined,
 	});
-	return data.data;
+	return mergeAuthUserWithToken(data.data, token);
 }

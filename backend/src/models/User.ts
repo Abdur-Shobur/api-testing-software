@@ -1,14 +1,15 @@
-import { Document, model, models, Schema, Types } from 'mongoose';
+import { Document, model, models, Schema } from 'mongoose';
 
 export type UserRole = 'owner' | 'admin' | 'member';
+export type UserStatus = 'active' | 'blocked';
 
 export interface IUser extends Document {
 	name: string;
 	email: string;
 	passwordHash: string;
 	role: UserRole;
-	teamId?: Types.ObjectId;
 	createdAt: Date;
+	status: UserStatus;
 }
 
 const UserSchema = new Schema<IUser>(
@@ -27,7 +28,11 @@ const UserSchema = new Schema<IUser>(
 			enum: ['owner', 'admin', 'member'],
 			default: 'member',
 		},
-		teamId: { type: Schema.Types.ObjectId, ref: 'Team' },
+		status: {
+			type: String,
+			enum: ['active', 'blocked'],
+			default: 'active',
+		},
 		createdAt: { type: Date, default: Date.now },
 	},
 	{

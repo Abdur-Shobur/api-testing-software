@@ -29,6 +29,7 @@ testCasesRouter.get(
 		const collection = await Collection.findOne({
 			_id: testCase.collectionId,
 			teamId: req.user!.teamId,
+			deletedAt: null,
 		}).lean<{ projectId?: Types.ObjectId | null }>();
 		if (!collection) {
 			res.status(404).json({ error: 'Test case not found' });
@@ -37,7 +38,7 @@ testCasesRouter.get(
 		const restricted = await getRestrictedProjectIdForMember(
 			req.user!.userId,
 			req.user!.teamId,
-			req.user!.role,
+			req.user!.teamRole,
 		);
 		if (!collectionProjectMatches(restricted, collection.projectId ? String(collection.projectId) : null)) {
 			res.status(404).json({ error: 'Test case not found' });

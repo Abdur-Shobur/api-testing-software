@@ -1,12 +1,12 @@
 'use client';
 
+import { useGetProjectsQuery } from '@/store/features/project/api-slice';
 import {
 	useGetMyTeamQuery,
 	useInviteTeamMemberMutation,
 	useRemoveTeamMemberMutation,
 } from '@/store/features/team/api-slice';
-import { useGetProjectsQuery } from '@/store/features/projects/api-slice';
-import type { Team } from '@/type';
+import type { TeamMemberRole, TeamMemberRow } from '@/type';
 import { Trash2 } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -15,13 +15,14 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 
-const roleClass = {
+const roleClass: Record<TeamMemberRole, string> = {
 	owner: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/20',
 	admin: 'bg-blue-500/15 text-blue-300 border-blue-500/20',
-	member: 'bg-zinc-500/15 text-zinc-300 border-zinc-500/20',
+	editor: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/20',
+	viewer: 'bg-zinc-500/15 text-zinc-300 border-zinc-500/20',
 };
 
-function memberProjectLabel(member: Team['members'][number]): string | null {
+function memberProjectLabel(member: TeamMemberRow): string | null {
 	const p = member.projectId;
 	if (p == null) return null;
 	if (typeof p === 'object' && 'name' in p) return p.name;
@@ -30,7 +31,7 @@ function memberProjectLabel(member: Team['members'][number]): string | null {
 
 export function TeamPage() {
 	const [email, setEmail] = useState('');
-	const [role, setRole] = useState<'admin' | 'member'>('member');
+	const [role, setRole] = useState<'admin' | 'editor' | 'viewer'>('viewer');
 	const [projectId, setProjectId] = useState('');
 	const { data, isLoading, isError } = useGetMyTeamQuery();
 	const { data: projectsData } = useGetProjectsQuery();
@@ -61,8 +62,9 @@ export function TeamPage() {
 			await inviteMember({ email, role, projectId }).unwrap();
 			setEmail('');
 			toast.success('Member added');
-		} catch (error: any) {
-			toast.error(error?.data?.error ?? 'Failed to invite member');
+		} catch (error: unknown) {
+			const err = error as { data?: { error?: string } };
+			toast.error(err?.data?.error ?? 'Failed to invite member');
 		}
 	};
 
@@ -74,6 +76,8 @@ export function TeamPage() {
 			toast.error('Failed to remove member');
 		}
 	};
+
+	const members = team?.members ?? [];
 
 	return (
 		<main className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
@@ -113,11 +117,12 @@ export function TeamPage() {
 						<select
 							value={role}
 							onChange={(event) =>
-								setRole(event.target.value as 'admin' | 'member')
+								setRole(event.target.value as 'admin' | 'editor' | 'viewer')
 							}
 							className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs"
 						>
-							<option value="member">member</option>
+							<option value="viewer">viewer</option>
+							<option value="editor">editor</option>
 							<option value="admin">admin</option>
 						</select>
 						<Button disabled={isInviting || !projectId}>
@@ -126,9 +131,9 @@ export function TeamPage() {
 					</form>
 
 					<div className="rounded-lg border border-zinc-800 overflow-hidden">
-						{team?.members.map((member) => (
+						{members.map((member) => (
 							<div
-								key={member.userId._id ?? member.userId.id}
+								key={member._id ?? member.userId._id ?? member.userId.id}
 								className="grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-3 px-4 py-3 border-b border-zinc-800 last:border-b-0"
 							>
 								<div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs">

@@ -1,47 +1,259 @@
 import { Document, model, models, Schema, Types } from 'mongoose';
 
 export interface ICollection extends Document {
-	name: string;
-	description?: string;
+
+	projectId: Types.ObjectId;
+
+	/**
+	 * Parent collection
+	 * null = root collection
+	 */
 	parentId: Types.ObjectId | null;
-	teamId: Types.ObjectId;
-	projectId: Types.ObjectId | null;
+
+	name: string;
+
+	slug: string;
+
+	description?: string;
+
+	/**
+	 * UI icon
+	 */
+	icon?: string;
+
+	/**
+	 * Sidebar color
+	 */
+	color?: string;
+
+	/**
+	 * Sidebar ordering
+	 */
+	sortOrder: number;
+
+	/**
+	 * Depth level
+	 * root = 0
+	 */
+	level: number;
+
+	/**
+	 * Full tree path
+	 * Example:
+	 * /auth/admin/login
+	 */
+	path: string;
+
+	/**
+	 * Restrict access
+	 */
 	assignedUserIds: Types.ObjectId[];
+
+	/**
+	 * Collection variables
+	 */
+	variables: {
+		key: string;
+		value: string;
+		secret?: boolean;
+	}[];
+
+	/**
+	 * Folder settings
+	 */
+	settings: {
+		collapsedByDefault: boolean;
+
+		inheritVariables: boolean;
+
+		inheritAuth: boolean;
+	};
+
+	createdBy: Types.ObjectId;
+
+	archived: boolean;
+
+	deletedAt?: Date | null;
+
 	createdAt: Date;
 	updatedAt: Date;
 }
 
-const CollectionSchema = new Schema<ICollection>(
+const CollectionVariableSchema = new Schema(
 	{
-		name: { type: String, required: true, trim: true },
-		description: { type: String, default: '' },
-		parentId: { type: Schema.Types.ObjectId, ref: 'Collection', default: null },
-		teamId: {
-			type: Schema.Types.ObjectId,
-			ref: 'Team',
+		key: {
+			type: String,
 			required: true,
-			index: true,
+			trim: true,
 		},
-		projectId: {
-			type: Schema.Types.ObjectId,
-			ref: 'Project',
-			default: null,
-			index: true,
+
+		value: {
+			type: String,
+			default: '',
 		},
-		assignedUserIds: [
-			{ type: Schema.Types.ObjectId, ref: 'User', default: [] },
-		],
+
+		secret: {
+			type: Boolean,
+			default: false,
+		},
 	},
 	{
-		timestamps: true,
-		toJSON: { virtuals: true },
-		toObject: { virtuals: true },
+		_id: false,
 	}
 );
 
-CollectionSchema.index({ teamId: 1, parentId: 1 });
-CollectionSchema.index({ teamId: 1, projectId: 1, parentId: 1 });
-CollectionSchema.index({ teamId: 1, assignedUserIds: 1 });
+const CollectionSchema = new Schema<ICollection>(
+	{
+		projectId: {
+			type: Schema.Types.ObjectId,
+			ref: 'Project',
+			required: true,
+		},
+
+		parentId: {
+			type: Schema.Types.ObjectId,
+			ref: 'Collection',
+			default: null,
+		},
+
+		name: {
+			type: String,
+			required: true,
+			trim: true,
+		},
+
+		slug: {
+			type: String,
+			required: true,
+			trim: true,
+			lowercase: true,
+		},
+
+		description: {
+			type: String,
+			default: '',
+		},
+
+		icon: {
+			type: String,
+			default: '',
+		},
+
+		color: {
+			type: String,
+			default: '#6366f1',
+		},
+
+		sortOrder: {
+			type: Number,
+			default: 0,
+		},
+
+		level: {
+			type: Number,
+			default: 0,
+		},
+
+		path: {
+			type: String,
+			default: '/',
+		},
+
+		assignedUserIds: [
+			{
+				type: Schema.Types.ObjectId,
+				ref: 'User',
+			},
+		],
+
+		variables: {
+			type: [CollectionVariableSchema],
+			default: [],
+		},
+
+		settings: {
+			collapsedByDefault: {
+				type: Boolean,
+				default: false,
+			},
+
+			inheritVariables: {
+				type: Boolean,
+				default: true,
+			},
+
+			inheritAuth: {
+				type: Boolean,
+				default: true,
+			},
+		},
+
+		createdBy: {
+			type: Schema.Types.ObjectId,
+			ref: 'User',
+			required: true,
+		},
+
+		archived: {
+			type: Boolean,
+			default: false,
+		},
+
+		deletedAt: {
+			type: Date,
+			default: null,
+		},
+	},
+	{
+		timestamps: true,
+
+		toJSON: {
+			virtuals: true,
+		},
+
+		toObject: {
+			virtuals: true,
+		},
+	}
+);
+
+CollectionSchema.index({
+	projectId: 1,
+	parentId: 1,
+	sortOrder: 1,
+});
+
+CollectionSchema.index({
+	projectId: 1,
+	path: 1,
+});
+
+CollectionSchema.index({
+	assignedUserIds: 1,
+});
+
+CollectionSchema.index({
+	createdBy: 1,
+});
+
+CollectionSchema.index({
+	archived: 1,
+});
+
+CollectionSchema.index({
+	deletedAt: 1,
+});
+
+CollectionSchema.index(
+	{
+		projectId: 1,
+		slug: 1,
+		parentId: 1,
+	},
+	{
+		unique: true,
+	}
+);
 
 export const Collection =
 	models.Collection || model<ICollection>('Collection', CollectionSchema);

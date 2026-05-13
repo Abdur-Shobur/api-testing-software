@@ -1,9 +1,9 @@
 import { CollectionTree } from '@/components/CollectionTree';
 import { EnvVarsPanel } from '@/components/EnvVarsPanel';
 import { useAuth } from '@/hooks/useAuth';
-import { CreateModal } from '@/store/features/collections/create-modal';
-import { Collection } from '@/store/features/collections/type';
-import { useGetProjectsQuery } from '@/store/features/projects/api-slice';
+// import { CreateModal } from '@/store/features/collection/collection-create-modal';
+import { Collection } from '@/store/features/collection/collection-type';
+import { useGetProjectsQuery } from '@/store/features/project/api-slice';
 import {
 	useGetMyTeamCollectionsQuery,
 	useGetSharedProjectsQuery,
@@ -49,7 +49,7 @@ export function Sidebar({
 						API Test
 					</span>
 				</div>
-				<CreateModal projectId={projectId ?? null} />
+				{/* <CreateModal projectId={projectId ?? null} /> */}
 			</div>
 
 			{user && (
@@ -66,7 +66,7 @@ export function Sidebar({
 							{user.name}
 						</div>
 						<div className="text-[10px] text-zinc-500 truncate">
-							{user.role}
+							{user.teamRole ?? user.role}
 						</div>
 					</button>
 					<button

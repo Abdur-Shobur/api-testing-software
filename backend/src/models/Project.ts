@@ -1,59 +1,111 @@
-import { Document, Schema, model, models, Types } from 'mongoose';
+import { Document, model, models, Schema, Types } from 'mongoose';
+import './ProjectSetting';
 
-export type ProjectAuthType = 'none' | 'bearer' | 'basic' | 'apiKey';
-
-export interface IProjectAuthSettings {
-	type: ProjectAuthType;
-	// bearer
-	bearerToken?: string;
-	// basic
-	username?: string;
-	password?: string;
-	// apiKey
-	apiKeyKey?: string;
-	apiKeyValue?: string;
-	apiKeyIn?: 'header' | 'query';
-}
+export type ProjectVisibility = 'private' | 'team' | 'public';
 
 export interface IProject extends Document {
-	name: string;
-	description?: string;
 	teamId: Types.ObjectId;
-	baseUrl?: string;
-	auth?: IProjectAuthSettings;
+
+	name: string;
+
+	slug: string;
+
+	description?: string;
+
+	icon?: string;
+
+	color?: string;
+
+	visibility: ProjectVisibility;
+
+	createdBy: Types.ObjectId;
+
+	settings?: Types.ObjectId;
+
 	createdAt: Date;
 	updatedAt: Date;
 }
 
-const ProjectAuthSchema = new Schema<IProjectAuthSettings>(
-	{
-		type: { type: String, enum: ['none', 'bearer', 'basic', 'apiKey'], default: 'none' },
-		bearerToken: { type: String, default: '' },
-		username: { type: String, default: '' },
-		password: { type: String, default: '' },
-		apiKeyKey: { type: String, default: '' },
-		apiKeyValue: { type: String, default: '' },
-		apiKeyIn: { type: String, enum: ['header', 'query'], default: 'header' },
-	},
-	{ _id: false },
-);
-
 const ProjectSchema = new Schema<IProject>(
 	{
-		name: { type: String, required: true, trim: true },
-		description: { type: String, default: '' },
-		teamId: { type: Schema.Types.ObjectId, ref: 'Team', required: true, index: true },
-		baseUrl: { type: String, default: '' },
-		auth: { type: ProjectAuthSchema, default: { type: 'none' } },
+		teamId: {
+			type: Schema.Types.ObjectId,
+			ref: 'Team',
+			required: true,
+		},
+
+		name: {
+			type: String,
+			required: true,
+			trim: true,
+		},
+
+		slug: {
+			type: String,
+			required: true,
+			trim: true,
+			lowercase: true,
+		},
+
+		description: {
+			type: String,
+			default: '',
+		},
+
+		icon: {
+			type: String,
+			default: '',
+		},
+
+		color: {
+			type: String,
+			default: '#6366f1',
+		},
+
+		visibility: {
+			type: String,
+			enum: ['private', 'team', 'public'],
+			default: 'private',
+		},
+
+		createdBy: {
+			type: Schema.Types.ObjectId,
+			ref: 'User',
+			required: true,
+		},
+
+		settings: {
+			type: Schema.Types.ObjectId,
+			ref: 'ProjectSettings',
+			default: undefined,
+		},
 	},
 	{
 		timestamps: true,
-		toJSON: { virtuals: true },
-		toObject: { virtuals: true },
+
+		toJSON: {
+			virtuals: true,
+		},
+
+		toObject: {
+			virtuals: true,
+		},
 	},
 );
 
-ProjectSchema.index({ teamId: 1, name: 1 });
+ProjectSchema.index(
+	{
+		teamId: 1,
+		slug: 1,
+	},
+	{
+		unique: true,
+	},
+);
 
-export const Project = models.Project || model<IProject>('Project', ProjectSchema);
+ProjectSchema.index({
+	createdBy: 1,
+});
 
+export const Project =
+	models.Project || model<IProject>('Project', ProjectSchema);

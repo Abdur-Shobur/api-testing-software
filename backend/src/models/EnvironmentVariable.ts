@@ -11,8 +11,8 @@ const EnvironmentVariableSchema = new Schema<IEnvironmentVariable>(
 	{
 		key: { type: String, required: true, trim: true },
 		value: { type: String, default: '' },
-		teamId: { type: Schema.Types.ObjectId, ref: 'Team', required: true, index: true },
-		projectId: { type: Schema.Types.ObjectId, ref: 'Project', default: null, index: true },
+		teamId: { type: Schema.Types.ObjectId, ref: 'Team', required: true,   },
+		projectId: { type: Schema.Types.ObjectId, ref: 'Project', default: null,  },
 	},
 	{
 		toJSON: { virtuals: true },

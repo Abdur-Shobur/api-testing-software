@@ -1,4 +1,3 @@
-import { cn } from '@/lib/utils';
 import { DocsEditor } from '@/components/DocsEditor';
 import { TestHistory } from '@/components/TestHistory';
 import {
@@ -7,8 +6,9 @@ import {
 	AccordionItem,
 	AccordionTrigger,
 } from '@/components/ui/accordion';
-import { Collection } from '@/store/features/collections/type';
-import { TestCaseEditModal } from '@/store/features/test-case/edit-modal';
+import { cn } from '@/lib/utils';
+import { Collection } from '@/store/features/collection/collection-type';
+import { TestCaseEditModal } from '@/store/features/test-case/test-case-edit-modal';
 import {
 	AssertionResult,
 	iTestCase,
@@ -26,7 +26,13 @@ import { SectionLabel } from '../ui/section-label';
 import { Skeleton } from '../ui/skeleton';
 import { StatusBadge } from '../ui/status-badge';
 
-function AssertionAccordionItem({ a, index }: { a: AssertionResult; index: number }) {
+function AssertionAccordionItem({
+	a,
+	index,
+}: {
+	a: AssertionResult;
+	index: number;
+}) {
 	const pass = a.status === 'pass';
 	const skip = a.status === 'skip';
 	return (
@@ -68,7 +74,11 @@ function AssertionAccordionItem({ a, index }: { a: AssertionResult; index: numbe
 						<pre
 							className={cn(
 								'font-mono text-[10px] whitespace-pre-wrap break-all',
-								skip ? 'text-zinc-400' : pass ? 'text-zinc-300' : 'text-rose-300',
+								skip
+									? 'text-zinc-400'
+									: pass
+										? 'text-zinc-300'
+										: 'text-rose-300',
 							)}
 						>
 							<code>{JSON.stringify(a.actual, null, 2)}</code>
@@ -258,22 +268,22 @@ export function DetailPanel({
 						<>
 							{/* Tabs (always visible, including History) */}
 							<div className="flex border-b border-zinc-800">
-								{(['body', 'headers', 'assertions', 'history'] as DetailTab[]).map(
-									(t) => (
-										<button
-											key={t}
-											onClick={() => setTab(t)}
-											className={cn(
-												'px-4 py-2 text-[12px] font-medium capitalize transition-colors duration-150 border-b-2 -mb-px',
-												tab === t
-													? 'text-zinc-100 border-orange-400'
-													: 'text-zinc-500 border-transparent hover:text-zinc-300',
-											)}
-										>
-											{t}
-										</button>
-									),
-								)}
+								{(
+									['body', 'headers', 'assertions', 'history'] as DetailTab[]
+								).map((t) => (
+									<button
+										key={t}
+										onClick={() => setTab(t)}
+										className={cn(
+											'px-4 py-2 text-[12px] font-medium capitalize transition-colors duration-150 border-b-2 -mb-px',
+											tab === t
+												? 'text-zinc-100 border-orange-400'
+												: 'text-zinc-500 border-transparent hover:text-zinc-300',
+										)}
+									>
+										{t}
+									</button>
+								))}
 							</div>
 
 							{/* Tab content */}
@@ -295,15 +305,23 @@ export function DetailPanel({
 
 								{tab === 'headers' && result && (
 									<div className="space-y-1.5">
-										{Object.entries(result.actual?.headers ?? {}).length === 0 ? (
+										{Object.entries(result.actual?.headers ?? {}).length ===
+										0 ? (
 											<div className="text-xs text-zinc-500">No headers.</div>
 										) : (
-											Object.entries(result.actual?.headers ?? {}).map(([k, v]) => (
-												<div key={k} className="flex gap-3 font-mono text-[11px]">
-													<span className="text-zinc-500 shrink-0">{k}:</span>
-													<span className="text-zinc-300 break-all">{String(v)}</span>
-												</div>
-											))
+											Object.entries(result.actual?.headers ?? {}).map(
+												([k, v]) => (
+													<div
+														key={k}
+														className="flex gap-3 font-mono text-[11px]"
+													>
+														<span className="text-zinc-500 shrink-0">{k}:</span>
+														<span className="text-zinc-300 break-all">
+															{String(v)}
+														</span>
+													</div>
+												),
+											)
 										)}
 									</div>
 								)}
@@ -311,7 +329,9 @@ export function DetailPanel({
 								{tab === 'assertions' && result && (
 									<div className="space-y-2">
 										{result.assertions.length === 0 ? (
-											<div className="text-xs text-zinc-500">No assertions.</div>
+											<div className="text-xs text-zinc-500">
+												No assertions.
+											</div>
 										) : (
 											<Accordion type="multiple" className="space-y-2">
 												{result.assertions.map((a, i) => (
@@ -325,8 +345,8 @@ export function DetailPanel({
 
 							{!result && !isError && (
 								<div className="mt-3 text-[11px] text-zinc-500">
-									Not yet run — press <span className="text-zinc-300">Run test</span>{' '}
-									to execute.
+									Not yet run — press{' '}
+									<span className="text-zinc-300">Run test</span> to execute.
 								</div>
 							)}
 							{isError && (

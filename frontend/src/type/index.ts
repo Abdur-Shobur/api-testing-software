@@ -46,18 +46,33 @@ export interface EnvVar {
 	teamId: string;
 }
 
+/** Populated `User` on a `TeamMember` row. */
 export interface TeamMemberUser {
 	id: string;
 	_id: string;
 	name: string;
 	email: string;
-	role: 'owner' | 'admin' | 'member';
+	status?: string;
+	createdAt?: string;
 }
 
 export interface TeamProjectRef {
 	id?: string;
 	_id: string;
 	name: string;
+	slug?: string;
+}
+
+export type TeamMemberRole = 'owner' | 'admin' | 'editor' | 'viewer';
+
+/** One membership row (matches backend `TeamMember` + populate). */
+export interface TeamMemberRow {
+	_id: string;
+	teamId?: string;
+	userId: TeamMemberUser;
+	role: TeamMemberRole;
+	projectId?: string | TeamProjectRef | null;
+	joinedAt?: string;
 }
 
 export interface Team {
@@ -66,9 +81,5 @@ export interface Team {
 	name: string;
 	slug: string;
 	ownerId: string;
-	members: {
-		userId: TeamMemberUser;
-		role: 'owner' | 'admin' | 'member';
-		projectId?: string | TeamProjectRef | null;
-	}[];
+	members: TeamMemberRow[];
 }

@@ -1,20 +1,16 @@
 import { Document, Types } from 'mongoose';
-export type ProjectAuthType = 'none' | 'bearer' | 'basic' | 'apiKey';
-export interface IProjectAuthSettings {
-    type: ProjectAuthType;
-    bearerToken?: string;
-    username?: string;
-    password?: string;
-    apiKeyKey?: string;
-    apiKeyValue?: string;
-    apiKeyIn?: 'header' | 'query';
-}
+import './ProjectSetting';
+export type ProjectVisibility = 'private' | 'team' | 'public';
 export interface IProject extends Document {
-    name: string;
-    description?: string;
     teamId: Types.ObjectId;
-    baseUrl?: string;
-    auth?: IProjectAuthSettings;
+    name: string;
+    slug: string;
+    description?: string;
+    icon?: string;
+    color?: string;
+    visibility: ProjectVisibility;
+    createdBy: Types.ObjectId;
+    settings?: Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;
 }

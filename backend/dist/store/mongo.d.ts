@@ -6,7 +6,7 @@ export declare function createCollection(dto: CreateCollectionDto & {
     parentId?: string | null;
     assignedUserIds?: string[];
     projectId?: string | null;
-}, teamId: string): Promise<Collection>;
+}, teamId: string, createdByUserId: string): Promise<Collection | undefined>;
 export declare function updateCollection(id: string, teamId: string, dto: UpdateCollectionDto & {
     parentId?: string | null;
     assignedUserIds?: string[];

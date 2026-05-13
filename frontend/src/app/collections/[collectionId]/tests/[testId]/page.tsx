@@ -10,12 +10,12 @@ import { RunAllPanel } from '@/components/sections/run-all-panel';
 import {
 	useGetCollectionQuery,
 	useGetCollectionsQuery,
-} from '@/store/features/collections/api-slice';
-import { Collection } from '@/store/features/collections/type';
+} from '@/store/features/collection/collection-api-slice';
+import { Collection } from '@/store/features/collection/collection-type';
 import {
 	useRunCollectionMutation,
 	useRunTestCaseMutation,
-} from '@/store/features/test-case/api-slice';
+} from '@/store/features/test-case/test-case-api-slice';
 import { iTestCase } from '@/store/features/test-case/type';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -29,10 +29,14 @@ export default function CollectionTestRunnerPage() {
 	const selectedColId = params.collectionId;
 	const selectedTestId = params.testId;
 
-	const { data: selectedCollectionResponse } = useGetCollectionQuery(selectedColId, {
-		skip: !selectedColId,
-	});
-	const selectedCollection = (selectedCollectionResponse?.data ?? null) as Collection | null;
+	const { data: selectedCollectionResponse } = useGetCollectionQuery(
+		selectedColId,
+		{
+			skip: !selectedColId,
+		},
+	);
+	const selectedCollection = (selectedCollectionResponse?.data ??
+		null) as Collection | null;
 
 	// infer project from collection (so sidebar stays scoped correctly)
 	const [projectId, setProjectId] = useState<string | null>(null);
@@ -134,4 +138,3 @@ export default function CollectionTestRunnerPage() {
 		</div>
 	);
 }
-

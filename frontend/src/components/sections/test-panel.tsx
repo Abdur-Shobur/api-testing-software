@@ -1,8 +1,8 @@
 import { cn } from '@/lib/utils';
-import { Collection } from '@/store/features/collections/type';
-import { TestCaseCreateModal } from '@/store/features/test-case/create-modal';
-import { TestCaseDelete } from '@/store/features/test-case/delete';
-import { TestCaseEditModal } from '@/store/features/test-case/edit-modal';
+import { Collection } from '@/store/features/collection/collection-type';
+import { TestCaseCreateModal } from '@/store/features/test-case/test-case-create-modal';
+import { TestCaseDelete } from '@/store/features/test-case/test-case-delete';
+import { TestCaseEditModal } from '@/store/features/test-case/test-case-edit-modal';
 import { Pencil, Play, Terminal } from 'lucide-react';
 import { IconBtn } from '../ui/icon-button';
 import { Btn } from '../ui/main-btn';

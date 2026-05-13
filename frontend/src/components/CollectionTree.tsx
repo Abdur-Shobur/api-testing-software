@@ -2,10 +2,7 @@
 
 import { apiClient } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { Collection } from '@/store/features/collections/type';
-import { CreateModal } from '@/store/features/collections/create-modal';
-import { CollectionDelete } from '@/store/features/collections/delete';
-import { EditModal } from '@/store/features/collections/edit-modal';
+import { Collection } from '@/store/features/collection/collection-type';
 import { ChevronRight, Layers } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -96,16 +93,20 @@ export function CollectionTree({
 							</span>
 						</button>
 					</div>
-					<div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100">
+					{/* <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100">
 						<CreateModal parentId={collection.id} projectId={projectId} />
 						<EditModal data={collection} />
 						<CollectionDelete data={collection} />
-					</div>
+					</div> */}
 				</div>
 				{isOpen && nodeChildren.map((child) => renderNode(child, level + 1))}
 			</div>
 		);
 	};
 
-	return <div className="space-y-0.5">{collections.map((col) => renderNode(col, 0))}</div>;
+	return (
+		<div className="space-y-0.5">
+			{collections.map((col) => renderNode(col, 0))}
+		</div>
+	);
 }

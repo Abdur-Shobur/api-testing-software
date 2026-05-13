@@ -1,10 +1,10 @@
 import { NextFunction, Request, Response } from 'express';
-import { UserRole } from '../models/User';
+import type { TeamRole } from '../models/TeamMembers';
 export interface AuthUser {
     userId: string;
     email: string;
     teamId: string;
-    role?: UserRole;
+    teamRole: TeamRole;
 }
 declare global {
     namespace Express {
@@ -15,5 +15,5 @@ declare global {
 }
 export declare function signAuthToken(payload: AuthUser): string;
 export declare function requireAuth(req: Request, res: Response, next: NextFunction): void;
-export declare function requireRole(role: UserRole): (req: Request, res: Response, next: NextFunction) => void;
+export declare function requireTeamRole(minRole: TeamRole): (req: Request, res: Response, next: NextFunction) => void;
 //# sourceMappingURL=auth.d.ts.map
