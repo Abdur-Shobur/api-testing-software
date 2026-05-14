@@ -3,12 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.runRouter = void 0;
 const express_1 = require("express");
 const mongoose_1 = require("mongoose");
-const memberProjectScope_1 = require("../lib/memberProjectScope");
-const store_1 = require("../store");
-const runner_1 = require("../runner");
+const CollectionRun_1 = require("../models/CollectionRun");
 const EnvironmentVariable_1 = require("../models/EnvironmentVariable");
 const TestRun_1 = require("../models/TestRun");
-const CollectionRun_1 = require("../models/CollectionRun");
+const runner_1 = require("../runner");
+const store_1 = require("../store");
 exports.runRouter = (0, express_1.Router)();
 function asyncHandler(fn) {
     return (req, res, next) => {
@@ -44,13 +43,9 @@ async function saveTestRun(result, collectionId, userId) {
 // ─── Run a single test case ──────────────────────────────────────────────────
 // POST /run/:collectionId/:testId
 exports.runRouter.post('/:collectionId/:testId', asyncHandler(async (req, res) => {
-    const col = await (0, store_1.getCollectionById)(req.params.collectionId, req.user.teamId);
+    const projectId = req.body.projectId;
+    const col = await (0, store_1.getCollectionById)(req.params.collectionId);
     if (!col) {
-        res.status(404).json({ error: 'Collection not found' });
-        return;
-    }
-    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
-    if (!(0, memberProjectScope_1.collectionProjectMatches)(restricted, col.projectId)) {
         res.status(404).json({ error: 'Collection not found' });
         return;
     }
@@ -64,8 +59,7 @@ exports.runRouter.post('/:collectionId/:testId', asyncHandler(async (req, res) =
     const merged = dto.request
         ? { ...tc, request: { ...tc.request, ...dto.request } }
         : tc;
-    const env = await getRunnerEnv(req.user.teamId, restricted);
-    const result = await (0, runner_1.runTestCase)(merged, env);
+    const result = await (0, runner_1.runTestCase)(merged, projectId);
     await saveTestRun(result, col.id, req.user.userId);
     const httpStatus = result.status === 'pass' ? 200 : result.status === 'error' ? 502 : 200;
     res.status(httpStatus).json({ data: result });
@@ -73,13 +67,8 @@ exports.runRouter.post('/:collectionId/:testId', asyncHandler(async (req, res) =
 // ─── Run all tests in a collection ──────────────────────────────────────────
 // POST /run/:collectionId
 exports.runRouter.post('/:collectionId', asyncHandler(async (req, res) => {
-    const col = await (0, store_1.getCollectionById)(req.params.collectionId, req.user.teamId);
+    const col = await (0, store_1.getCollectionById)(req.params.collectionId);
     if (!col) {
-        res.status(404).json({ error: 'Collection not found' });
-        return;
-    }
-    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
-    if (!(0, memberProjectScope_1.collectionProjectMatches)(restricted, col.projectId)) {
         res.status(404).json({ error: 'Collection not found' });
         return;
     }
@@ -90,11 +79,10 @@ exports.runRouter.post('/:collectionId', asyncHandler(async (req, res) => {
     const startTime = Date.now();
     const dto = (req.body ?? {});
     const mode = dto.mode ?? 'parallel';
-    const env = await getRunnerEnv(req.user.teamId, restricted);
     const results = [];
     if (mode === 'sequential') {
         for (const tc of col.testCases) {
-            const result = await (0, runner_1.runTestCase)(tc, env);
+            const result = await (0, runner_1.runTestCase)(tc, dto.projectId);
             await saveTestRun(result, col.id, req.user.userId);
             results.push(result);
             if (dto.stopOnFail && result.status !== 'pass')
@@ -102,7 +90,7 @@ exports.runRouter.post('/:collectionId', asyncHandler(async (req, res) => {
         }
     }
     else {
-        const parallelResults = await Promise.all(col.testCases.map((tc) => (0, runner_1.runTestCase)(tc, env)));
+        const parallelResults = await Promise.all(col.testCases.map((tc) => (0, runner_1.runTestCase)(tc, dto.projectId)));
         await Promise.all(parallelResults.map((result) => saveTestRun(result, col.id, req.user.userId)));
         results.push(...parallelResults);
     }

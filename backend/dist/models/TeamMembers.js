@@ -7,13 +7,11 @@ const TeamMemberSchema = new mongoose_1.Schema({
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'Team',
         required: true,
-        index: true,
     },
     userId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
-        index: true,
     },
     role: {
         type: String,

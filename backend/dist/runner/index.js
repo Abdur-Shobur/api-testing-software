@@ -5,27 +5,28 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runTestCase = runTestCase;
 const axios_1 = __importDefault(require("axios"));
+const Project_1 = require("../models/Project");
 function replaceEnvVars(value, env) {
     return value.replace(/\{\{([A-Z0-9_]+)\}\}/gi, (_match, key) => {
         return env[key] ?? env[key.toUpperCase()] ?? '';
     });
 }
-function substituteRequestEnv(request, env) {
+function substituteRequestEnv(request) {
     return {
         ...request,
-        url: replaceEnvVars(request.url, env),
+        url: request.url,
         headers: request.headers.map((header) => ({
             ...header,
-            value: replaceEnvVars(header.value, env),
+            value: header.value,
         })),
         queryParams: request.queryParams.map((param) => ({
             ...param,
-            value: replaceEnvVars(param.value, env),
+            value: param.value,
         })),
         body: request.body
             ? {
                 ...request.body,
-                content: replaceEnvVars(request.body.content, env),
+                content: request.body.content,
             }
             : request.body,
     };
@@ -199,8 +200,9 @@ function assertBody(mode, expectedRaw, actual) {
     }
 }
 // ─── Runner ──────────────────────────────────────────────────────────────────
-async function runTestCase(testCase, env = {}) {
-    const request = substituteRequestEnv(testCase.request, env);
+async function runTestCase(testCase, projectId) {
+    const project = await Project_1.Project.findById(projectId).populate('settings');
+    const request = substituteRequestEnv(testCase.request);
     const { expectedResponse } = testCase;
     const startTime = Date.now();
     // Build axios config
@@ -219,10 +221,17 @@ async function runTestCase(testCase, env = {}) {
     }
     let response = null;
     let errorMessage;
+    const url = project?.settings?.baseUrl
+        ? project.settings?.baseUrl + request.url
+        : request.url;
+    const authorization = project?.settings?.authorization;
+    if (authorization) {
+        headers.authorization = authorization;
+    }
     try {
         response = await (0, axios_1.default)({
             method: request.method,
-            url: request.url,
+            url: url,
             headers,
             params,
             data,

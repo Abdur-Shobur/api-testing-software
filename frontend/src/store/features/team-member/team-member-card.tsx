@@ -31,11 +31,9 @@ function getProjectLabel(member: TeamMemberRow): string | null {
 export function TeamMemberCard({
 	member,
 	teamId,
-	canManage,
 }: {
 	member: TeamMemberRow;
 	teamId: string;
-	canManage: boolean;
 }) {
 	const userId = member?.userId?._id ?? member?.userId?.id;
 	const projectLabel = getProjectLabel(member);
@@ -64,24 +62,22 @@ export function TeamMemberCard({
 					</div>
 				</div>
 
-				{canManage && member.role !== 'owner' && (
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button size="icon" variant="ghost" className="hover:bg-zinc-800">
-								<MoreVertical className="w-4 h-4" />
-							</Button>
-						</DropdownMenuTrigger>
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button size="icon" variant="ghost" className="hover:bg-zinc-800">
+							<MoreVertical className="w-4 h-4" />
+						</Button>
+					</DropdownMenuTrigger>
 
-						<DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-							<TeamMemberEditModal member={member} teamId={teamId} />
-							<TeamMemberDelete
-								teamId={teamId}
-								userId={userId}
-								memberName={member?.userId?.name}
-							/>
-						</DropdownMenuContent>
-					</DropdownMenu>
-				)}
+					<DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+						<TeamMemberEditModal member={member} teamId={teamId} />
+						<TeamMemberDelete
+							teamId={teamId}
+							userId={userId}
+							memberName={member?.userId?.name}
+						/>
+					</DropdownMenuContent>
+				</DropdownMenu>
 			</CardHeader>
 		</Card>
 	);

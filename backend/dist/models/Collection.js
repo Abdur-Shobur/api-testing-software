@@ -20,23 +20,15 @@ const CollectionVariableSchema = new mongoose_1.Schema({
     _id: false,
 });
 const CollectionSchema = new mongoose_1.Schema({
-    teamId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'Team',
-        required: true,
-        index: true,
-    },
     projectId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'Project',
         required: true,
-        index: true,
     },
     parentId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'Collection',
         default: null,
-        index: true,
     },
     name: {
         type: String,
@@ -72,7 +64,6 @@ const CollectionSchema = new mongoose_1.Schema({
     path: {
         type: String,
         default: '/',
-        index: true,
     },
     assignedUserIds: [
         {
@@ -102,7 +93,6 @@ const CollectionSchema = new mongoose_1.Schema({
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
-        index: true,
     },
     archived: {
         type: Boolean,
@@ -122,7 +112,6 @@ const CollectionSchema = new mongoose_1.Schema({
     },
 });
 CollectionSchema.index({
-    teamId: 1,
     projectId: 1,
     parentId: 1,
     sortOrder: 1,

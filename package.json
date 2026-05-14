@@ -1,0 +1,16 @@
+{
+	"name": "api-test-runner-monorepo",
+	"version": "1.0.0",
+	"private": true,
+	"scripts": {
+		"dev": "concurrently -k -n backend,frontend -c blue,green \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+		"install:all": "cd backend && npm install && cd ../frontend && npm install",
+		"build": "concurrently \"npm run build --prefix backend\" \"npm run build --prefix frontend\"",
+		"start:backend": "npm start --prefix backend",
+		"start:frontend": "npm start --prefix frontend",
+		"start": "concurrently \"npm run start --prefix frontend\" \"npm run start --prefix backend\""
+	},
+	"devDependencies": {
+		"concurrently": "^9.1.2"
+	}
+}

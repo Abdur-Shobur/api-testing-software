@@ -4,7 +4,6 @@ export interface ITeamInvite extends Document {
     email: string;
     role: 'admin' | 'editor' | 'viewer';
     projectId?: Types.ObjectId | null;
-    token: string;
     status: 'pending' | 'accepted' | 'expired' | 'cancelled';
     invitedBy: Types.ObjectId;
     expiresAt: Date;

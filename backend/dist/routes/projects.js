@@ -37,22 +37,28 @@ exports.projectsRouter.get('/', asyncHandler(async (req, res) => {
         .populate('settings');
     res.json({ data: projects, total: projects.length });
 }));
+// get projects by team id
+exports.projectsRouter.get('/team/:teamId', asyncHandler(async (req, res) => {
+    const projects = await Project_1.Project.find({
+        teamId: new mongoose_1.Types.ObjectId(req.params.teamId),
+    });
+    res.json({ data: projects });
+}));
 exports.projectsRouter.post('/', asyncHandler(async (req, res) => {
-    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
-    if (restricted) {
-        res.status(403).json({ error: 'Cannot create projects for this account' });
+    const { name, description = '', visibility = 'private', teamId, } = req.body ?? {};
+    if (!teamId || !mongoose_1.Types.ObjectId.isValid(teamId)) {
+        res.status(400).json({ error: 'teamId is required' });
         return;
     }
-    const { name, description = '', visibility = 'private' } = req.body ?? {};
     if (!name?.trim()) {
         res.status(400).json({ error: 'name is required' });
         return;
     }
-    const teamOid = new mongoose_1.Types.ObjectId(req.user.teamId);
+    const teamOid = new mongoose_1.Types.ObjectId(teamId);
     const slug = await uniqueProjectSlug(teamOid, String(name));
     const settings = await ProjectSetting_1.ProjectSettings.create({
         baseUrl: '',
-        auth: {},
+        authorization: '',
     });
     const project = await Project_1.Project.create({
         name: String(name).trim(),
@@ -60,7 +66,9 @@ exports.projectsRouter.post('/', asyncHandler(async (req, res) => {
         description: String(description ?? ''),
         teamId: teamOid,
         createdBy: new mongoose_1.Types.ObjectId(req.user.userId),
-        visibility: visibility === 'team' || visibility === 'public' ? visibility : 'private',
+        visibility: visibility === 'team' || visibility === 'public'
+            ? visibility
+            : 'private',
         settings: settings._id,
     });
     const populated = (await Project_1.Project.findById(project._id).populate('settings')) ?? project;
@@ -71,16 +79,10 @@ exports.projectsRouter.get('/:projectId', asyncHandler(async (req, res) => {
         res.status(400).json({ error: 'invalid projectId' });
         return;
     }
-    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
     const project = await Project_1.Project.findOne({
         _id: req.params.projectId,
-        teamId: req.user.teamId,
     }).populate('settings');
     if (!project) {
-        res.status(404).json({ error: 'Project not found' });
-        return;
-    }
-    if (restricted && String(project._id) !== restricted) {
         res.status(404).json({ error: 'Project not found' });
         return;
     }
@@ -91,7 +93,7 @@ exports.projectsRouter.patch('/:projectId', asyncHandler(async (req, res) => {
         res.status(400).json({ error: 'invalid projectId' });
         return;
     }
-    const { name, description, visibility, baseUrl, auth } = req.body ?? {};
+    const { name, description, visibility, baseUrl, authorization } = req.body ?? {};
     const update = {};
     if (name !== undefined) {
         if (!String(name).trim()) {
@@ -99,6 +101,7 @@ exports.projectsRouter.patch('/:projectId', asyncHandler(async (req, res) => {
             return;
         }
         update.name = String(name).trim();
+        update.slug = (0, slugify_1.slugify)(String(name).trim());
     }
     if (description !== undefined)
         update.description = String(description ?? '');
@@ -109,22 +112,20 @@ exports.projectsRouter.patch('/:projectId', asyncHandler(async (req, res) => {
         }
         update.visibility = visibility;
     }
-    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
     const project = await Project_1.Project.findOneAndUpdate({
         _id: req.params.projectId,
         teamId: req.user.teamId,
-        ...(restricted ? { _id: new mongoose_1.Types.ObjectId(restricted) } : {}),
     }, update, { new: true });
     if (!project) {
         res.status(404).json({ error: 'Project not found' });
         return;
     }
-    if (baseUrl !== undefined || auth !== undefined) {
+    if (baseUrl !== undefined || authorization !== undefined) {
         let settingsId = project.settings;
         if (!settingsId) {
             const created = await ProjectSetting_1.ProjectSettings.create({
                 baseUrl: '',
-                auth: {},
+                authorization: '',
             });
             settingsId = created._id;
             project.settings = settingsId;
@@ -133,8 +134,8 @@ exports.projectsRouter.patch('/:projectId', asyncHandler(async (req, res) => {
         const settingsUpdate = {};
         if (baseUrl !== undefined)
             settingsUpdate.baseUrl = String(baseUrl ?? '');
-        if (auth !== undefined)
-            settingsUpdate.auth = auth;
+        if (authorization !== undefined)
+            settingsUpdate.authorization = authorization;
         if (Object.keys(settingsUpdate).length > 0) {
             await ProjectSetting_1.ProjectSettings.findByIdAndUpdate(settingsId, settingsUpdate, {
                 new: true,
@@ -166,23 +167,19 @@ exports.projectsRouter.get('/:projectId/documentation', asyncHandler(async (req,
         res.status(400).json({ error: 'invalid projectId' });
         return;
     }
-    const restricted = await (0, memberProjectScope_1.getRestrictedProjectIdForMember)(req.user.userId, req.user.teamId, req.user.teamRole);
-    if (restricted && req.params.projectId !== restricted) {
+    if (!req.params.projectId) {
         res.status(404).json({ error: 'Project not found' });
         return;
     }
     const project = await Project_1.Project.exists({
         _id: req.params.projectId,
-        teamId: req.user.teamId,
     });
     if (!project) {
         res.status(404).json({ error: 'Project not found' });
         return;
     }
     const projectId = new mongoose_1.Types.ObjectId(req.params.projectId);
-    const teamId = new mongoose_1.Types.ObjectId(req.user.teamId);
     const collections = await Collection_1.Collection.find({
-        teamId,
         projectId,
         deletedAt: null,
     }).sort({
@@ -191,7 +188,9 @@ exports.projectsRouter.get('/:projectId/documentation', asyncHandler(async (req,
     const collectionIds = collections.map((c) => c._id);
     const [docs, tests] = await Promise.all([
         Documentation_1.Documentation.find({ collectionId: { $in: collectionIds } }),
-        TestCase_1.TestCase.find({ collectionId: { $in: collectionIds } }).sort({ createdAt: 1 }),
+        TestCase_1.TestCase.find({ collectionId: { $in: collectionIds } }).sort({
+            createdAt: 1,
+        }),
     ]);
     const docsByCollectionId = new Map();
     for (const d of docs)

@@ -5,7 +5,9 @@ import { Project } from '../project/type';
 
 export interface TeamInvite {
 	_id: string;
-	teamId: { _id: string; name: string; slug: string } | string;
+	teamId:
+		| { _id: string; name: string; slug: string; description: string }
+		| string;
 	email: string;
 	role: 'admin' | 'editor' | 'viewer';
 	projectId?: { _id: string; name: string; slug: string } | string | null;

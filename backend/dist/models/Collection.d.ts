@@ -1,6 +1,5 @@
 import { Document, Types } from 'mongoose';
 export interface ICollection extends Document {
-    teamId: Types.ObjectId;
     projectId: Types.ObjectId;
     /**
      * Parent collection

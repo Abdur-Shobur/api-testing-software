@@ -34,13 +34,8 @@ export function TestCaseView() {
 			<div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 gap-1">
 				<div className="min-w-0">
 					<p className="text-[13px] font-semibold line-clamp-1 text-zinc-100">
-						{isLoading ? 'Loading...' : (collection?.name ?? 'Collection')}
+						{isLoading ? 'Loading...' : 'Collection'}
 					</p>
-					{collection?.description && (
-						<p className="text-[10px] line-clamp-1 text-zinc-500">
-							{collection.description}
-						</p>
-					)}
 				</div>
 
 				<TestCaseCreateModal />

@@ -140,7 +140,6 @@ export default function TeamPageView() {
 										key={member._id}
 										member={member}
 										teamId={teamId}
-										canManage={canManage}
 									/>
 								))}
 							</div>

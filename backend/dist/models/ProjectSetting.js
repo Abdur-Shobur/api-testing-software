@@ -3,8 +3,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProjectSettings = void 0;
 const mongoose_1 = require("mongoose");
 const ProjectSettingsSchema = new mongoose_1.Schema({
-    baseUrl: { type: String, default: '' },
-    auth: { type: mongoose_1.Schema.Types.Mixed, default: {} },
+    baseUrl: {
+        type: String,
+        default: '',
+    },
+    authorization: {
+        type: mongoose_1.Schema.Types.Mixed,
+        default: null,
+    },
 }, {
     timestamps: true,
     toJSON: { virtuals: true },

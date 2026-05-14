@@ -4,6 +4,7 @@ import { Btn } from '@/components/ui/main-btn';
 import { Play } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { useProjectContext } from '../project/project-context';
 import { useRunTestCaseMutation } from './test-case-api-slice';
 
 export function TestCaseRun({
@@ -15,12 +16,15 @@ export function TestCaseRun({
 }) {
 	const [mutation, { isLoading }] = useRunTestCaseMutation();
 	const [clicked, setClicked] = useState(false);
+	const { projectId } = useProjectContext();
 
 	const handleClick = async () => {
 		if (clicked || isLoading) return;
 
 		try {
-			const response = await mutation({ colId, testId }).unwrap();
+			if (projectId) {
+				await mutation({ colId, testId, projectId }).unwrap();
+			}
 		} catch (err) {
 			toast.error('Failed to Run');
 		} finally {

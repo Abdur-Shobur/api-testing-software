@@ -7,7 +7,6 @@ const TeamInviteSchema = new mongoose_1.Schema({
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'Team',
         required: true,
-        index: true,
     },
     email: {
         type: String,
@@ -24,11 +23,6 @@ const TeamInviteSchema = new mongoose_1.Schema({
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'Project',
         default: null,
-    },
-    token: {
-        type: String,
-        required: true,
-        unique: true,
     },
     status: {
         type: String,

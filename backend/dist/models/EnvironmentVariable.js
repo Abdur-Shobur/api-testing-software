@@ -5,8 +5,8 @@ const mongoose_1 = require("mongoose");
 const EnvironmentVariableSchema = new mongoose_1.Schema({
     key: { type: String, required: true, trim: true },
     value: { type: String, default: '' },
-    teamId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team', required: true, index: true },
-    projectId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Project', default: null, index: true },
+    teamId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team', required: true, },
+    projectId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Project', default: null, },
 }, {
     toJSON: { virtuals: true },
     toObject: { virtuals: true },

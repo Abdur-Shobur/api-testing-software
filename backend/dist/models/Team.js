@@ -11,19 +11,18 @@ const TeamSchema = new mongoose_1.Schema({
     slug: {
         type: String,
         required: true,
-        unique: true,
         lowercase: true,
         trim: true,
     },
     description: {
         type: String,
         default: '',
+        trim: true,
     },
     ownerId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
-        index: true,
     },
 }, {
     timestamps: true,
@@ -31,5 +30,10 @@ const TeamSchema = new mongoose_1.Schema({
     toObject: { virtuals: true },
 });
 TeamSchema.index({ ownerId: 1 });
+TeamSchema.virtual('members', {
+    ref: 'TeamMember',
+    localField: '_id',
+    foreignField: 'teamId',
+});
 exports.Team = mongoose_1.models.Team || (0, mongoose_1.model)('Team', TeamSchema);
 //# sourceMappingURL=Team.js.map

@@ -8,7 +8,6 @@ const ProjectSchema = new mongoose_1.Schema({
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'Team',
         required: true,
-        index: true,
     },
     name: {
         type: String,
@@ -42,7 +41,6 @@ const ProjectSchema = new mongoose_1.Schema({
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
-        index: true,
     },
     settings: {
         type: mongoose_1.Schema.Types.ObjectId,

@@ -56,7 +56,9 @@ function serializeTestCase(testCase) {
 }
 async function serializeCollection(collection) {
     const obj = collection.toObject({ virtuals: true });
-    const testCases = await TestCase_1.TestCase.find({ collectionId: collection._id }).sort({
+    const testCases = await TestCase_1.TestCase.find({
+        collectionId: collection._id,
+    }).sort({
         createdAt: 1,
     });
     return {
@@ -97,12 +99,11 @@ async function getAssignedCollections(teamId, userId) {
     });
     return Promise.all(collections.map(serializeCollection));
 }
-async function getCollectionById(id, teamId) {
+async function getCollectionById(id) {
     if (!mongoose_1.Types.ObjectId.isValid(id))
         return undefined;
     const collection = await Collection_1.Collection.findOne({
         _id: id,
-        teamId,
         ...activeCollection,
     });
     return collection ? serializeCollection(collection) : undefined;
@@ -112,7 +113,7 @@ async function createCollection(dto, teamId, createdByUserId) {
         return undefined;
     }
     const teamOid = objectId(teamId);
-    const projectOid = objectId(dto.projectId);
+    const projectOid = dto.projectId;
     const parentOid = dto.parentId ? objectId(dto.parentId) : null;
     const parentDoc = parentOid
         ? await Collection_1.Collection.findOne({
@@ -128,7 +129,8 @@ async function createCollection(dto, teamId, createdByUserId) {
     const slug = await nextCollectionSlug(projectOid, parentOid, dto.name);
     const level = parentDoc ? parentDoc.level + 1 : 0;
     const pathBase = parentDoc && parentDoc.path && parentDoc.path !== '/' ? parentDoc.path : '';
-    const path = `${pathBase}/${slug}`.replace(/\/{2,}/g, '/').replace(/^\/?/, '/') || `/${slug}`;
+    const path = `${pathBase}/${slug}`.replace(/\/{2,}/g, '/').replace(/^\/?/, '/') ||
+        `/${slug}`;
     const last = await Collection_1.Collection.findOne({
         teamId: teamOid,
         projectId: projectOid,
@@ -197,7 +199,9 @@ async function updateCollection(id, teamId, dto) {
         const nameForSlug = dto.name !== undefined ? dto.name.trim() : existing.name;
         slug = await nextCollectionSlug(nextProjectId, nextParentId, nameForSlug, existing._id);
         level = parentDoc ? parentDoc.level + 1 : 0;
-        const pathBase = parentDoc && parentDoc.path && parentDoc.path !== '/' ? parentDoc.path : '';
+        const pathBase = parentDoc && parentDoc.path && parentDoc.path !== '/'
+            ? parentDoc.path
+            : '';
         path =
             `${pathBase}/${slug}`.replace(/\/{2,}/g, '/').replace(/^\/?/, '/') ||
                 `/${slug}`;
@@ -214,7 +218,9 @@ async function updateCollection(id, teamId, dto) {
     }
     const collection = await Collection_1.Collection.findOneAndUpdate({ _id: id, teamId, ...activeCollection }, {
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-        ...(dto.description !== undefined ? { description: dto.description } : {}),
+        ...(dto.description !== undefined
+            ? { description: dto.description }
+            : {}),
         ...(dto.parentId !== undefined ? { parentId: nextParentId } : {}),
         ...(dto.projectId !== undefined ? { projectId: nextProjectId } : {}),
         ...(dto.assignedUserIds !== undefined
@@ -256,11 +262,10 @@ async function deleteCollection(id, teamId) {
     ]);
     return true;
 }
-async function getCollectionChildren(id, teamId, projectId) {
+async function getCollectionChildren(id, projectId) {
     if (!mongoose_1.Types.ObjectId.isValid(id))
         return [];
     const filter = {
-        teamId,
         parentId: id,
         ...activeCollection,
     };
@@ -273,7 +278,7 @@ async function getCollectionChildren(id, teamId, projectId) {
     return Promise.all(children.map(serializeCollection));
 }
 async function getCollectionTree(id, teamId, maxDepth = 10) {
-    const root = await getCollectionById(id, teamId);
+    const root = await getCollectionById(id);
     if (!root)
         return undefined;
     const nodes = new Map([
@@ -304,10 +309,9 @@ async function getCollectionTree(id, teamId, maxDepth = 10) {
     }
     return nodes.get(id);
 }
-async function createTestCase(collectionId, teamId, dto) {
+async function createTestCase(collectionId, dto) {
     const collection = await Collection_1.Collection.findOne({
         _id: collectionId,
-        teamId,
         ...activeCollection,
     });
     if (!collection)
@@ -328,10 +332,9 @@ async function createTestCase(collectionId, teamId, dto) {
     });
     return serializeTestCase(testCase);
 }
-async function getTestCaseById(collectionId, testId, teamId) {
+async function getTestCaseById(collectionId, testId) {
     const collection = await Collection_1.Collection.exists({
         _id: collectionId,
-        teamId,
         ...activeCollection,
     });
     if (!collection || !mongoose_1.Types.ObjectId.isValid(testId))
@@ -339,10 +342,9 @@ async function getTestCaseById(collectionId, testId, teamId) {
     const testCase = await TestCase_1.TestCase.findOne({ _id: testId, collectionId });
     return testCase ? serializeTestCase(testCase) : undefined;
 }
-async function updateTestCase(collectionId, testId, teamId, dto) {
+async function updateTestCase(collectionId, testId, dto) {
     const collection = await Collection_1.Collection.exists({
         _id: collectionId,
-        teamId,
         ...activeCollection,
     });
     if (!collection || !mongoose_1.Types.ObjectId.isValid(testId))
@@ -365,10 +367,9 @@ async function updateTestCase(collectionId, testId, teamId, dto) {
     await existing.save();
     return serializeTestCase(existing);
 }
-async function deleteTestCase(collectionId, testId, teamId) {
+async function deleteTestCase(collectionId, testId) {
     const collection = await Collection_1.Collection.exists({
         _id: collectionId,
-        teamId,
         ...activeCollection,
     });
     if (!collection || !mongoose_1.Types.ObjectId.isValid(testId))

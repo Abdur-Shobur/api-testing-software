@@ -107,7 +107,11 @@ export default function TeamPage() {
 							>
 								<CardHeader className="flex flex-row items-start justify-between space-y-0">
 									<Link
-										href={ROUTES.project.projectId(invite.teamId._id)}
+										href={ROUTES.project.projectId(
+											typeof invite.teamId === 'object'
+												? invite?.teamId?._id
+												: '#',
+										)}
 										className="flex items-center gap-3"
 									>
 										<div className="w-12 h-12 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center">
@@ -116,11 +120,14 @@ export default function TeamPage() {
 
 										<div>
 											<CardTitle className="text-base">
-												{invite.teamId.name}
+												{typeof invite.teamId === 'object' &&
+													invite.teamId.name}
 											</CardTitle>
 
 											<p className="text-sm text-zinc-500 mt-1">
-												{invite.teamId.description || 'No description'}
+												{(typeof invite.teamId === 'object' &&
+													invite.teamId.description) ||
+													'No description'}
 											</p>
 										</div>
 									</Link>
@@ -129,7 +136,13 @@ export default function TeamPage() {
 								<CardContent>
 									<div className="flex items-center justify-between">
 										<div className="flex items-center gap-2">
-											<Link href={ROUTES.project.projectId(invite.teamId._id)}>
+											<Link
+												href={ROUTES.project.projectId(
+													typeof invite.teamId === 'object'
+														? invite.teamId._id
+														: '',
+												)}
+											>
 												<Button
 													variant="secondary"
 													size="sm"

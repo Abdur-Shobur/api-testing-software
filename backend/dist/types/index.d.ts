@@ -88,8 +88,8 @@ export interface CollectionRunResult {
     durationMs: number;
     results: TestCaseResult[];
 }
-export type CreateCollectionDto = Pick<Collection, 'name' | 'description'>;
-export type UpdateCollectionDto = Partial<Pick<Collection, 'name' | 'description'>>;
+export type CreateCollectionDto = Pick<Collection, 'name' | 'description' | 'teamId' | 'projectId' | 'parentId'>;
+export type UpdateCollectionDto = Partial<Pick<Collection, 'name' | 'description' | 'teamId' | 'projectId' | 'parentId'>>;
 export type CreateTestCaseDto = Omit<TestCase, 'id' | 'createdAt' | 'updatedAt'>;
 export type UpdateTestCaseDto = Partial<CreateTestCaseDto>;
 export interface RunTestCaseDto {
