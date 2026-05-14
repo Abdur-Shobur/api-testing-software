@@ -2,6 +2,7 @@ export const ROUTES = {
 	team: {
 		main: '/team',
 		id: (id: string) => `/team/${id}`,
+		invites: '/team/invites',
 	},
 	collection: {
 		main: (teamId: string, collectionId: string) =>

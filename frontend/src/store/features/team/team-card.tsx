@@ -8,47 +8,23 @@ import {
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ROUTES } from '@/lib/route';
+import type { Team } from '@/type';
 
 import { MoreVertical, User, Users } from 'lucide-react';
 import Link from 'next/link';
 import { TeamDelete } from './team-delete';
 import { TeamEditModal } from './team-edit-modal';
 
-const teams = [
-	{
-		id: '1',
-		name: 'Frontend Team',
-		description: 'Handles UI development and components',
-		members: 6,
-	},
-	{
-		id: '2',
-		name: 'Backend Team',
-		description: 'API and database management',
-		members: 4,
-	},
-	{
-		id: '3',
-		name: 'DevOps Team',
-		description: 'Deployment and infrastructure',
-		members: 3,
-	},
-];
+export function TeamCard({ team }: { team: Team }) {
+	const teamId = team._id ?? team.id;
+	const memberCount = team.members?.length ?? 0;
+	const isOwner = true;
 
-export function TeamCard(team: {
-	id: string;
-	name: string;
-	description: string;
-	members: number;
-}) {
 	return (
-		<Card
-			key={team.id}
-			className="bg-zinc-900 border-zinc-800 hover:border-zinc-700 transition-colors"
-		>
+		<Card className="bg-zinc-900 border-zinc-800 hover:border-zinc-700 transition-colors">
 			<CardHeader className="flex flex-row items-start justify-between space-y-0">
 				<Link
-					href={`${ROUTES.project.projectId('TeamId')}`}
+					href={ROUTES.project.projectId(teamId)}
 					className="flex items-center gap-3"
 				>
 					<div className="w-12 h-12 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center">
@@ -58,38 +34,41 @@ export function TeamCard(team: {
 					<div>
 						<CardTitle className="text-base">{team.name}</CardTitle>
 
-						<p className="text-sm text-zinc-500 mt-1">{team.description}</p>
+						<p className="text-sm text-zinc-500 mt-1">
+							{team.description || 'No description'}
+						</p>
 					</div>
 				</Link>
 
-				{/* Actions */}
-				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<Button
-							size="icon"
-							variant="ghost"
-							className="text-zinc-400 hover:text-white hover:bg-zinc-800"
-						>
-							<MoreVertical className="w-4 h-4" />
-						</Button>
-					</DropdownMenuTrigger>
+				{(isOwner || team.role === 'admin') && (
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								size="icon"
+								variant="ghost"
+								className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+							>
+								<MoreVertical className="w-4 h-4" />
+							</Button>
+						</DropdownMenuTrigger>
 
-					<DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-						<TeamEditModal />
-						<TeamDelete />
-					</DropdownMenuContent>
-				</DropdownMenu>
+						<DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+							<TeamEditModal team={team} />
+							{isOwner && <TeamDelete teamId={teamId} teamName={team.name} />}
+						</DropdownMenuContent>
+					</DropdownMenu>
+				)}
 			</CardHeader>
 
 			<CardContent>
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-2 text-sm text-zinc-400">
 						<User className="w-4 h-4" />
-						{team.members} Members
+						{memberCount} {memberCount === 1 ? 'Member' : 'Members'}
 					</div>
 
 					<div className="flex items-center gap-2">
-						<Link href={ROUTES.project.projectId('teamId')}>
+						<Link href={ROUTES.project.projectId(teamId)}>
 							<Button
 								variant="secondary"
 								size="sm"
@@ -98,13 +77,13 @@ export function TeamCard(team: {
 								View Projects
 							</Button>
 						</Link>
-						<Link href={ROUTES.team.id('teamId')}>
+						<Link href={ROUTES.team.id(teamId)}>
 							<Button
 								variant="outline"
 								size="sm"
 								className="border-zinc-700 bg-zinc-950 hover:bg-zinc-800"
 							>
-								View Team Members
+								View Members
 							</Button>
 						</Link>
 					</div>

@@ -18,6 +18,7 @@ export interface ProjectSettingsDoc {
 	auth?: ProjectAuthSettings | Record<string, unknown>;
 	createdAt?: string;
 	updatedAt?: string;
+	authorization?: string;
 }
 
 export type ProjectVisibility = 'private' | 'team' | 'public';
@@ -30,10 +31,11 @@ export interface Project {
 	description?: string;
 	/** Legacy: may be flat on older responses; prefer `settings`. */
 	baseUrl?: string;
+	authorization?: string;
 	auth?: ProjectAuthSettings;
 	teamId?: string;
 	visibility?: ProjectVisibility;
-	settings?: ProjectSettingsDoc | string | null;
+	settings?: ProjectSettingsDoc;
 	createdBy?: string;
 	createdAt: string;
 	updatedAt: string;

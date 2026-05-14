@@ -1,4 +1,4 @@
-export * from './collection-tests';
 export * from './collection-tree';
-export * from './team-switcher';
+export * from './detail-panel';
+export * from './run-all-panel';
 export * from './top-bar';

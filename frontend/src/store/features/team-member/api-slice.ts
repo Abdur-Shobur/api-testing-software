@@ -1,7 +1,8 @@
-import { apiSlice } from '../api/apiSlice';
-
-export const api = apiSlice.injectEndpoints({
-	endpoints: () => ({}),
-});
-
-export const {} = api;
+export {
+	useGetTeamMembersQuery,
+	useUpdateMemberRoleMutation,
+	useRemoveTeamMemberMutation,
+	useLeaveTeamMutation,
+	useGetSharedProjectsQuery,
+	useSendInviteMutation,
+} from '../team/api-slice';

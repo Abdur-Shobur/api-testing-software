@@ -12,7 +12,7 @@ export const projectsRouter = Router();
 
 async function uniqueProjectSlug(
 	teamId: Types.ObjectId,
-	baseName: string
+	baseName: string,
 ): Promise<string> {
 	let slug = slugify(baseName) || 'project';
 	let n = 0;
@@ -24,7 +24,7 @@ async function uniqueProjectSlug(
 }
 
 function asyncHandler(
-	fn: (req: Request, res: Response, next: NextFunction) => Promise<void>
+	fn: (req: Request, res: Response, next: NextFunction) => Promise<void>,
 ) {
 	return (req: Request, res: Response, next: NextFunction) => {
 		fn(req, res, next).catch(next);
@@ -37,7 +37,7 @@ projectsRouter.get(
 		const restricted = await getRestrictedProjectIdForMember(
 			req.user!.userId,
 			req.user!.teamId,
-			req.user!.teamRole
+			req.user!.teamRole,
 		);
 		const filter: Record<string, unknown> = { teamId: req.user!.teamId };
 		if (restricted) filter._id = new Types.ObjectId(restricted);
@@ -47,33 +47,42 @@ projectsRouter.get(
 			})
 			.populate('settings');
 		res.json({ data: projects, total: projects.length });
-	})
+	}),
+);
+
+// get projects by team id
+projectsRouter.get(
+	'/team/:teamId',
+	asyncHandler(async (req, res) => {
+		const projects = await Project.find({
+			teamId: new Types.ObjectId(req.params.teamId),
+		});
+		res.json({ data: projects });
+	}),
 );
 
 projectsRouter.post(
 	'/',
 	asyncHandler(async (req, res) => {
-		const restricted = await getRestrictedProjectIdForMember(
-			req.user!.userId,
-			req.user!.teamId,
-			req.user!.teamRole
-		);
-		if (restricted) {
-			res
-				.status(403)
-				.json({ error: 'Cannot create projects for this account' });
+		const {
+			name,
+			description = '',
+			visibility = 'private',
+			teamId,
+		} = req.body ?? {};
+		if (!teamId || !Types.ObjectId.isValid(teamId)) {
+			res.status(400).json({ error: 'teamId is required' });
 			return;
 		}
-		const { name, description = '', visibility = 'private' } = req.body ?? {};
 		if (!name?.trim()) {
 			res.status(400).json({ error: 'name is required' });
 			return;
 		}
-		const teamOid = new Types.ObjectId(req.user!.teamId);
+		const teamOid = new Types.ObjectId(teamId);
 		const slug = await uniqueProjectSlug(teamOid, String(name));
 		const settings = await ProjectSettings.create({
 			baseUrl: '',
-			auth: {},
+			authorization: '',
 		});
 		const project = await Project.create({
 			name: String(name).trim(),
@@ -90,7 +99,7 @@ projectsRouter.post(
 		const populated =
 			(await Project.findById(project._id).populate('settings')) ?? project;
 		res.status(201).json({ data: populated });
-	})
+	}),
 );
 
 projectsRouter.get(
@@ -100,25 +109,18 @@ projectsRouter.get(
 			res.status(400).json({ error: 'invalid projectId' });
 			return;
 		}
-		const restricted = await getRestrictedProjectIdForMember(
-			req.user!.userId,
-			req.user!.teamId,
-			req.user!.teamRole
-		);
+
 		const project = await Project.findOne({
 			_id: req.params.projectId,
-			teamId: req.user!.teamId,
 		}).populate('settings');
+
 		if (!project) {
 			res.status(404).json({ error: 'Project not found' });
 			return;
 		}
-		if (restricted && String(project._id) !== restricted) {
-			res.status(404).json({ error: 'Project not found' });
-			return;
-		}
+
 		res.json({ data: project });
-	})
+	}),
 );
 
 projectsRouter.patch(
@@ -128,7 +130,8 @@ projectsRouter.patch(
 			res.status(400).json({ error: 'invalid projectId' });
 			return;
 		}
-		const { name, description, visibility, baseUrl, auth } = req.body ?? {};
+		const { name, description, visibility, baseUrl, authorization } =
+			req.body ?? {};
 
 		const update: Record<string, unknown> = {};
 		if (name !== undefined) {
@@ -149,31 +152,25 @@ projectsRouter.patch(
 			update.visibility = visibility;
 		}
 
-		const restricted = await getRestrictedProjectIdForMember(
-			req.user!.userId,
-			req.user!.teamId,
-			req.user!.teamRole
-		);
 		const project = await Project.findOneAndUpdate(
 			{
 				_id: req.params.projectId,
 				teamId: req.user!.teamId,
-				...(restricted ? { _id: new Types.ObjectId(restricted) } : {}),
 			},
 			update,
-			{ new: true }
+			{ new: true },
 		);
 		if (!project) {
 			res.status(404).json({ error: 'Project not found' });
 			return;
 		}
 
-		if (baseUrl !== undefined || auth !== undefined) {
+		if (baseUrl !== undefined || authorization !== undefined) {
 			let settingsId = project.settings as Types.ObjectId | undefined;
 			if (!settingsId) {
 				const created = await ProjectSettings.create({
 					baseUrl: '',
-					auth: {},
+					authorization: '',
 				});
 				settingsId = created._id as Types.ObjectId;
 				project.settings = settingsId;
@@ -181,7 +178,8 @@ projectsRouter.patch(
 			}
 			const settingsUpdate: Record<string, unknown> = {};
 			if (baseUrl !== undefined) settingsUpdate.baseUrl = String(baseUrl ?? '');
-			if (auth !== undefined) settingsUpdate.auth = auth;
+			if (authorization !== undefined)
+				settingsUpdate.authorization = authorization;
 			if (Object.keys(settingsUpdate).length > 0) {
 				await ProjectSettings.findByIdAndUpdate(settingsId, settingsUpdate, {
 					new: true,
@@ -191,7 +189,7 @@ projectsRouter.patch(
 
 		const fresh = await Project.findById(project._id).populate('settings');
 		res.json({ data: fresh ?? project });
-	})
+	}),
 );
 
 projectsRouter.delete(
@@ -204,7 +202,7 @@ projectsRouter.delete(
 		const restricted = await getRestrictedProjectIdForMember(
 			req.user!.userId,
 			req.user!.teamId,
-			req.user!.teamRole
+			req.user!.teamRole,
 		);
 		const result = await Project.deleteOne({
 			_id: req.params.projectId,
@@ -216,7 +214,7 @@ projectsRouter.delete(
 			return;
 		}
 		res.json({ data: { deleted: true } });
-	})
+	}),
 );
 
 projectsRouter.get(
@@ -226,18 +224,13 @@ projectsRouter.get(
 			res.status(400).json({ error: 'invalid projectId' });
 			return;
 		}
-		const restricted = await getRestrictedProjectIdForMember(
-			req.user!.userId,
-			req.user!.teamId,
-			req.user!.teamRole
-		);
-		if (restricted && req.params.projectId !== restricted) {
+
+		if (!req.params.projectId) {
 			res.status(404).json({ error: 'Project not found' });
 			return;
 		}
 		const project = await Project.exists({
 			_id: req.params.projectId,
-			teamId: req.user!.teamId,
 		});
 		if (!project) {
 			res.status(404).json({ error: 'Project not found' });
@@ -245,10 +238,8 @@ projectsRouter.get(
 		}
 
 		const projectId = new Types.ObjectId(req.params.projectId);
-		const teamId = new Types.ObjectId(req.user!.teamId);
 
 		const collections = await Collection.find({
-			teamId,
 			projectId,
 			deletedAt: null,
 		}).sort({
@@ -326,7 +317,7 @@ projectsRouter.get(
 							collectionId: String(doc.collectionId),
 							createdAt: doc.createdAt.toISOString(),
 							updatedAt: doc.updatedAt.toISOString(),
-					  }
+						}
 					: null,
 				testCases,
 				children: [],
@@ -345,5 +336,5 @@ projectsRouter.get(
 		}
 
 		res.json({ data: { projectId: req.params.projectId, tree: roots } });
-	})
+	}),
 );

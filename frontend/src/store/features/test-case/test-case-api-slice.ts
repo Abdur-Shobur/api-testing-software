@@ -1,8 +1,27 @@
 import { apiSlice } from '../api/apiSlice';
-import { CollectionRunResult, iTestCase, TestCaseResult, TestRun } from './type';
+import {
+	CollectionRunResult,
+	iTestCase,
+	TestCaseResult,
+	TestRun,
+} from './type';
 
-export const collectionApi = apiSlice.injectEndpoints({
+export const testCaseApi = apiSlice.injectEndpoints({
 	endpoints: (builder) => ({
+		// ─── Queries ───
+		GetTestCases: builder.query<{ data: iTestCase[]; total: number }, string>({
+			query: (colId) => `/collections/${colId}/tests`,
+			providesTags: ['COLLECTIONS'],
+		}),
+
+		GetTestCase: builder.query<
+			{ data: iTestCase },
+			{ colId: string; testId: string }
+		>({
+			query: ({ colId, testId }) => `/collections/${colId}/tests/${testId}`,
+			providesTags: ['COLLECTIONS'],
+		}),
+
 		// ─── Test Cases ───
 		CreateTestCase: builder.mutation<
 			iTestCase,
@@ -42,16 +61,21 @@ export const collectionApi = apiSlice.injectEndpoints({
 		// ─── Run ───
 		RunCollection: builder.mutation<
 			{ data: CollectionRunResult },
-			| string
-			| { colId: string; mode?: 'sequential' | 'parallel'; stopOnFail?: boolean }
+			{
+				colId: string;
+				projectId: string;
+				mode?: 'sequential' | 'parallel';
+				stopOnFail?: boolean;
+			}
 		>({
 			query: (arg) => ({
-				url: `/run/${typeof arg === 'string' ? arg : arg.colId}`,
+				url: `/run/${arg.colId}`,
 				method: 'POST',
-				body:
-					typeof arg === 'string'
-						? undefined
-						: { mode: arg.mode, stopOnFail: arg.stopOnFail },
+				body: {
+					mode: arg.mode ?? undefined,
+					stopOnFail: arg.stopOnFail ?? undefined,
+					projectId: arg.projectId,
+				},
 			}),
 		}),
 
@@ -65,11 +89,12 @@ export const collectionApi = apiSlice.injectEndpoints({
 
 		RunTestCase: builder.mutation<
 			{ data: TestCaseResult },
-			{ colId: string; testId: string }
+			{ colId: string; testId: string; projectId: string }
 		>({
-			query: ({ colId, testId }) => ({
+			query: ({ colId, testId, projectId }) => ({
 				url: `/run/${colId}/${testId}`,
 				method: 'POST',
+				body: { projectId },
 			}),
 			invalidatesTags: ['HISTORY'],
 		}),
@@ -77,10 +102,12 @@ export const collectionApi = apiSlice.injectEndpoints({
 });
 
 export const {
+	useGetTestCasesQuery,
+	useGetTestCaseQuery,
 	useCreateTestCaseMutation,
 	useUpdateTestCaseMutation,
 	useDeleteTestCaseMutation,
 	useRunCollectionMutation,
 	useRunTestCaseMutation,
 	useGetTestHistoryQuery,
-} = collectionApi;
+} = testCaseApi;

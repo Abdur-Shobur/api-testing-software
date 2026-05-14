@@ -11,9 +11,29 @@ import {
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
+import { useDeleteTeamMutation } from './api-slice';
 
-export function TeamDelete() {
+export function TeamDelete({
+	teamId,
+	teamName,
+}: {
+	teamId: string;
+	teamName: string;
+}) {
 	const [open, setOpen] = useState(false);
+	const [deleteTeam, { isLoading }] = useDeleteTeamMutation();
+
+	const handleDelete = async () => {
+		try {
+			await deleteTeam(teamId).unwrap();
+			toast.success('Team deleted');
+			setOpen(false);
+		} catch (error: unknown) {
+			const err = error as { data?: { error?: string } };
+			toast.error(err?.data?.error ?? 'Failed to delete team');
+		}
+	};
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -33,7 +53,9 @@ export function TeamDelete() {
 
 				<div className="space-y-5 mt-2">
 					<p className="text-sm text-zinc-400">
-						Are you sure you want to delete this team?
+						Are you sure you want to delete{' '}
+						<span className="font-semibold text-zinc-200">{teamName}</span>?
+						This will remove all members and cannot be undone.
 					</p>
 
 					<div className="flex justify-end gap-3">
@@ -45,8 +67,12 @@ export function TeamDelete() {
 							Cancel
 						</Button>
 
-						<Button className="bg-rose-500 hover:bg-rose-600">
-							Delete Team
+						<Button
+							disabled={isLoading}
+							onClick={handleDelete}
+							className="bg-rose-500 hover:bg-rose-600"
+						>
+							{isLoading ? 'Deleting...' : 'Delete Team'}
 						</Button>
 					</div>
 				</div>

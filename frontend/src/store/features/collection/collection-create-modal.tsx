@@ -26,7 +26,7 @@ export function CollectionCreateModal({
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<span className="opacity-0 group-hover:opacity-100 transition-all">
+				<span className="transition-all">
 					<Plus className="w-3.5 h-3.5" />
 				</span>
 			</DialogTrigger>

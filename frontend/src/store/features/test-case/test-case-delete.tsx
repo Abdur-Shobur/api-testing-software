@@ -2,7 +2,9 @@
 
 import { IconBtn } from '@/components/ui/icon-button';
 import { alertConfirm } from '@/lib/confirm';
+import { ROUTES } from '@/lib/route';
 import { Trash2 } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useDeleteTestCaseMutation } from './test-case-api-slice';
@@ -16,6 +18,8 @@ export function TestCaseDelete({
 }) {
 	const [mutation, { isLoading }] = useDeleteTestCaseMutation();
 	const [clicked, setClicked] = useState(false);
+	const router = useRouter();
+	const params = useParams();
 
 	const handleClick = async () => {
 		if (clicked || isLoading) return;
@@ -29,6 +33,9 @@ export function TestCaseDelete({
 
 					if (res.success) {
 						toast.success(res.message);
+						router.push(
+							ROUTES.collection.main(params?.teamId?.toString() || '', colId),
+						);
 					} else {
 						toast.error('Failed to delete');
 					}

@@ -91,6 +91,8 @@ const schema = z.object({
 
 import { iState, METHODS } from '@/type';
 import { useEffect } from 'react';
+import { useGetProjectQuery } from '../project/api-slice';
+import { useProjectContext } from '../project/project-context';
 import { useUpdateTestCaseMutation } from './test-case-api-slice';
 import { iTestCase } from './type';
 
@@ -105,6 +107,12 @@ export function Edit({
 	data: iTestCase;
 	colId: string;
 }) {
+	const { projectId } = useProjectContext();
+	const { data: project, isLoading: projectLoading } = useGetProjectQuery(
+		projectId as string,
+		{ skip: !projectId },
+	);
+
 	const [update, { isLoading }] = useUpdateTestCaseMutation();
 	const [tab, setTab] = useState<'request' | 'expected'>('request');
 	const [mode, setMode] = useState<'params' | 'headers' | 'body'>('params');
@@ -140,6 +148,7 @@ export function Edit({
 	const methodWatch = form.watch('request.method');
 	const reqBodyTab = form.watch('request.body.type'); // reqBodyTab, setReqBodyTab
 	const bodyTab = form.watch('expectedResponse.body.mode'); // bodyTab, setBodyTab
+	const baseUrl = form.watch('request.url');
 
 	useEffect(() => {
 		form.reset({
@@ -260,6 +269,13 @@ export function Edit({
 				{/* ================= REQUEST ================= */}
 				{tab === 'request' && (
 					<div className="space-y-4">
+						<div>
+							Base URL:{' '}
+							<span className="text-green-500">
+								{project?.data?.settings?.baseUrl ?? ''}
+							</span>
+							<span className="text-blue-500">{baseUrl}</span>
+						</div>
 						{/* Method + URL */}
 						<div className="flex gap-2">
 							<FormField
@@ -343,6 +359,14 @@ export function Edit({
 						{/* Headers */}
 						<div hidden={mode !== 'headers'}>
 							<p className="text-sm text-zinc-300">Request Headers</p>
+							{project?.data?.settings?.authorization && (
+								<div className="text-xs text-pretty max-h-10 overflow-y-auto">
+									Authorization From Parent:{' '}
+									<code className="break-all text-yellow-400">
+										{project?.data?.settings?.authorization ?? ''}
+									</code>
+								</div>
+							)}
 							<FormField
 								control={form.control}
 								name="request.headers"

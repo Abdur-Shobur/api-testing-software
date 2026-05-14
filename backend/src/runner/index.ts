@@ -1,4 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
+import { Project } from '../models/Project';
 import {
 	AssertionResult,
 	AssertionStatus,
@@ -20,23 +21,22 @@ function replaceEnvVars(value: string, env: RunnerEnvironment): string {
 
 function substituteRequestEnv(
 	request: TestCase['request'],
-	env: RunnerEnvironment,
 ): TestCase['request'] {
 	return {
 		...request,
-		url: replaceEnvVars(request.url, env),
+		url: request.url,
 		headers: request.headers.map((header) => ({
 			...header,
-			value: replaceEnvVars(header.value, env),
+			value: header.value,
 		})),
 		queryParams: request.queryParams.map((param) => ({
 			...param,
-			value: replaceEnvVars(param.value, env),
+			value: param.value,
 		})),
 		body: request.body
 			? {
 					...request.body,
-					content: replaceEnvVars(request.body.content, env),
+					content: request.body.content,
 				}
 			: request.body,
 	};
@@ -253,9 +253,10 @@ function assertBody(
 
 export async function runTestCase(
 	testCase: TestCase,
-	env: RunnerEnvironment = {},
+	projectId: string,
 ): Promise<TestCaseResult> {
-	const request = substituteRequestEnv(testCase.request, env);
+	const project = await Project.findById(projectId).populate('settings');
+	const request = substituteRequestEnv(testCase.request);
 	const { expectedResponse } = testCase;
 	const startTime = Date.now();
 
@@ -276,11 +277,19 @@ export async function runTestCase(
 
 	let response: AxiosResponse | null = null;
 	let errorMessage: string | undefined;
+	const url = project?.settings?.baseUrl
+		? project.settings?.baseUrl + request.url
+		: request.url;
+	const authorization = project?.settings?.authorization;
+
+	if (authorization) {
+		headers.authorization = authorization;
+	}
 
 	try {
 		response = await axios({
 			method: request.method,
-			url: request.url,
+			url: url,
 			headers,
 			params,
 			data,

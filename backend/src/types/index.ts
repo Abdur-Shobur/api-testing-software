@@ -128,9 +128,12 @@ export interface CollectionRunResult {
 
 // ─── API Payloads ────────────────────────────────────────────────────────────
 
-export type CreateCollectionDto = Pick<Collection, 'name' | 'description'>;
+export type CreateCollectionDto = Pick<
+	Collection,
+	'name' | 'description' | 'teamId' | 'projectId' | 'parentId'
+>;
 export type UpdateCollectionDto = Partial<
-	Pick<Collection, 'name' | 'description'>
+	Pick<Collection, 'name' | 'description' | 'teamId' | 'projectId' | 'parentId'>
 >;
 
 export type CreateTestCaseDto = Omit<

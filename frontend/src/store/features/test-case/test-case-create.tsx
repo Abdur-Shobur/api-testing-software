@@ -29,7 +29,10 @@ import {
 } from '@/components/ui/select';
 import { METHODS } from '@/type';
 import { ArrowDown, ArrowUp, BookCheck, FileText } from 'lucide-react';
+import { useParams } from 'next/navigation';
 import { useGetCollectionsQuery } from '../collection/collection-api-slice';
+import { useGetProjectQuery } from '../project/api-slice';
+import { useProjectContext } from '../project/project-context';
 import { useCreateTestCaseMutation } from './test-case-api-slice';
 const methodColor: Record<string, string> = {
 	GET: '#4fffb0',
@@ -118,18 +121,20 @@ const defaultValues: FormType = {
 // ==================
 // ✅ Component
 // ==================
-export function TestCaseCreate({
-	colId,
-	onClose,
-}: {
-	colId: string;
-	onClose?: () => void;
-}) {
+export function TestCaseCreate({ onClose }: { onClose?: () => void }) {
+	const { projectId } = useProjectContext();
+	const { data: project, isLoading: projectLoading } = useGetProjectQuery(
+		projectId as string,
+		{ skip: !projectId },
+	);
+
+	const params = useParams();
+	const paramColId = (params?.collectionid as string[])?.[0] ?? '';
+	const [targetColId, setTargetColId] = useState(paramColId);
 	const [createTest, { isLoading }] = useCreateTestCaseMutation();
 	const { data: collectionsData } = useGetCollectionsQuery();
 	const [tab, setTab] = useState<'request' | 'expected'>('request');
 	const [mode, setMode] = useState<'params' | 'headers' | 'body'>('params');
-	const [targetColId, setTargetColId] = useState(colId);
 
 	const form = useForm<FormType>({
 		resolver: zodResolver(schema),
@@ -158,6 +163,7 @@ export function TestCaseCreate({
 		}
 	};
 	const methodWatch = form.watch('request.method');
+	const baseUrl = form.watch('request.url');
 
 	// ==================
 	// ✅ UI
@@ -193,21 +199,6 @@ export function TestCaseCreate({
 							</FormItem>
 						)}
 					/>
-
-					<div className="space-y-2">
-						<label className="text-sm font-medium">Collection</label>
-						<select
-							value={targetColId}
-							onChange={(event) => setTargetColId(event.target.value)}
-							className="h-9 w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 text-sm"
-						>
-							{(collectionsData?.data ?? []).map((collection) => (
-								<option key={collection.id} value={collection.id}>
-									{collection.name}
-								</option>
-							))}
-						</select>
-					</div>
 				</div>
 
 				{/* ================= TABS ================= */}
@@ -235,6 +226,13 @@ export function TestCaseCreate({
 				{/* ================= REQUEST ================= */}
 				{tab === 'request' && (
 					<div className="space-y-4">
+						<div>
+							Base URL:{' '}
+							<span className="text-green-500">
+								{project?.data?.settings?.baseUrl ?? ''}
+							</span>
+							<span className="text-blue-500">{baseUrl}</span>
+						</div>
 						{/* Method + URL */}
 						<div className="flex gap-2">
 							<FormField
@@ -318,6 +316,14 @@ export function TestCaseCreate({
 						{/* Headers */}
 						<div hidden={mode !== 'headers'}>
 							<p className="text-sm text-zinc-300">Request Headers</p>
+							{project?.data?.settings?.authorization && (
+								<div className="text-xs text-pretty max-h-10 overflow-y-auto">
+									Authorization From Parent:{' '}
+									<code className="break-all text-yellow-400">
+										{project?.data?.settings?.authorization ?? ''}
+									</code>
+								</div>
+							)}
 							<FormField
 								control={form.control}
 								name="request.headers"

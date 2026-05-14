@@ -15,7 +15,7 @@ import { Btn } from '@/components/ui/main-btn';
 import { iState } from '@/type';
 import { TestCaseCreate } from './test-case-create';
 
-export function TestCaseCreateModal({ colId }: { colId: string }) {
+export function TestCaseCreateModal() {
 	const [open, setOpen] = useState(false);
 
 	return (
@@ -33,18 +33,12 @@ export function TestCaseCreateModal({ colId }: { colId: string }) {
 					<DialogDescription>Create a new test case.</DialogDescription>
 				</DialogHeader>
 
-				<FORM colId={colId} setOpen={setOpen} />
+				<FORM setOpen={setOpen} />
 			</DialogContent>
 		</Dialog>
 	);
 }
 
-const FORM = ({
-	colId,
-	setOpen,
-}: {
-	colId: string;
-	setOpen: iState<boolean>;
-}) => {
-	return <TestCaseCreate colId={colId} onClose={() => setOpen(false)} />;
+const FORM = ({ setOpen }: { setOpen: iState<boolean> }) => {
+	return <TestCaseCreate onClose={() => setOpen(false)} />;
 };

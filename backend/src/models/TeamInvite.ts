@@ -9,8 +9,6 @@ export interface ITeamInvite extends Document {
 
 	projectId?: Types.ObjectId | null;
 
-	token: string;
-
 	status: 'pending' | 'accepted' | 'expired' | 'cancelled';
 
 	invitedBy: Types.ObjectId;
@@ -50,12 +48,6 @@ const TeamInviteSchema = new Schema<ITeamInvite>(
 			default: null,
 		},
 
-		token: {
-			type: String,
-			required: true,
-			unique: true,
-		},
-
 		status: {
 			type: String,
 			enum: ['pending', 'accepted', 'expired', 'cancelled'],
@@ -80,7 +72,7 @@ const TeamInviteSchema = new Schema<ITeamInvite>(
 	},
 	{
 		timestamps: true,
-	}
+	},
 );
 
 TeamInviteSchema.index({

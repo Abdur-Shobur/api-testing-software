@@ -23,7 +23,6 @@ const TeamSchema = new Schema<ITeam>(
 		slug: {
 			type: String,
 			required: true,
-			unique: true,
 			lowercase: true,
 			trim: true,
 		},
@@ -31,6 +30,7 @@ const TeamSchema = new Schema<ITeam>(
 		description: {
 			type: String,
 			default: '',
+			trim: true,
 		},
 
 		ownerId: {
@@ -48,5 +48,10 @@ const TeamSchema = new Schema<ITeam>(
 );
 
 TeamSchema.index({ ownerId: 1 });
+TeamSchema.virtual('members', {
+	ref: 'TeamMember',
+	localField: '_id',
+	foreignField: 'teamId',
+});
 
 export const Team = models.Team || model<ITeam>('Team', TeamSchema);

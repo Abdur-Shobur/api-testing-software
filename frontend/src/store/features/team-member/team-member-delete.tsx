@@ -11,9 +11,31 @@ import {
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
+import { useRemoveTeamMemberMutation } from '../team/api-slice';
 
-export function TeamMemberDelete() {
+export function TeamMemberDelete({
+	teamId,
+	userId,
+	memberName,
+}: {
+	teamId: string;
+	userId: string;
+	memberName: string;
+}) {
 	const [open, setOpen] = useState(false);
+	const [removeMember, { isLoading }] = useRemoveTeamMemberMutation();
+
+	const handleDelete = async () => {
+		try {
+			await removeMember({ teamId, userId }).unwrap();
+			toast.success('Member removed');
+			setOpen(false);
+		} catch (error: unknown) {
+			const err = error as { data?: { error?: string } };
+			toast.error(err?.data?.error ?? 'Failed to remove member');
+		}
+	};
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -23,17 +45,19 @@ export function TeamMemberDelete() {
 					className="cursor-pointer text-rose-400 focus:bg-zinc-800 focus:text-rose-300"
 				>
 					<Trash2 className="w-4 h-4 mr-2" />
-					Delete
+					Remove
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
 				<DialogHeader>
-					<DialogTitle>Delete Team</DialogTitle>
+					<DialogTitle>Remove Member</DialogTitle>
 				</DialogHeader>
 
 				<div className="space-y-5 mt-2">
 					<p className="text-sm text-zinc-400">
-						Are you sure you want to delete this team?
+						Are you sure you want to remove{' '}
+						<span className="font-semibold text-zinc-200">{memberName}</span>{' '}
+						from this team?
 					</p>
 
 					<div className="flex justify-end gap-3">
@@ -45,8 +69,12 @@ export function TeamMemberDelete() {
 							Cancel
 						</Button>
 
-						<Button className="bg-rose-500 hover:bg-rose-600">
-							Delete Member
+						<Button
+							disabled={isLoading}
+							onClick={handleDelete}
+							className="bg-rose-500 hover:bg-rose-600"
+						>
+							{isLoading ? 'Removing...' : 'Remove Member'}
 						</Button>
 					</div>
 				</div>

@@ -1,9 +1,5 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import { Types } from 'mongoose';
-import {
-	collectionProjectMatches,
-	getRestrictedProjectIdForMember,
-} from '../lib/memberProjectScope';
 import { Collection } from '../models/Collection';
 import { TestCase } from '../models/TestCase';
 import { TestRun } from '../models/TestRun';
@@ -28,22 +24,13 @@ testCasesRouter.get(
 		}
 		const collection = await Collection.findOne({
 			_id: testCase.collectionId,
-			teamId: req.user!.teamId,
 			deletedAt: null,
 		}).lean<{ projectId?: Types.ObjectId | null }>();
 		if (!collection) {
 			res.status(404).json({ error: 'Test case not found' });
 			return;
 		}
-		const restricted = await getRestrictedProjectIdForMember(
-			req.user!.userId,
-			req.user!.teamId,
-			req.user!.teamRole,
-		);
-		if (!collectionProjectMatches(restricted, collection.projectId ? String(collection.projectId) : null)) {
-			res.status(404).json({ error: 'Test case not found' });
-			return;
-		}
+
 		const runs = await TestRun.find({ testCaseId: req.params.testId })
 			.sort({ runAt: -1 })
 			.limit(20);

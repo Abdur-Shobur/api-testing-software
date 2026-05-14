@@ -27,5 +27,5 @@ export const apiSlice = createApi({
 	refetchOnMountOrArgChange: true,
 	refetchOnFocus: env.production ? false : true,
 	keepUnusedDataFor: 50000,
-	tagTypes: ['COLLECTIONS', 'DOCS', 'ENV_VARS', 'TEAM', 'HISTORY', 'PROJECTS'],
+	tagTypes: ['COLLECTIONS', 'DOCS', 'ENV_VARS', 'TEAM', 'HISTORY', 'PROJECTS', 'INVITES'],
 });

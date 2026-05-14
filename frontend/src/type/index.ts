@@ -80,6 +80,8 @@ export interface Team {
 	_id: string;
 	name: string;
 	slug: string;
+	description?: string;
 	ownerId: string;
+	role?: TeamMemberRole;
 	members: TeamMemberRow[];
 }

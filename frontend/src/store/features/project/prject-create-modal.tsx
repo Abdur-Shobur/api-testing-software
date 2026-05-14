@@ -9,74 +9,75 @@ import {
 	DialogTrigger,
 } from '@/components/ui/dialog';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { TeamMemberRow } from '@/type';
-import { Pencil } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Plus } from 'lucide-react';
+import { useParams } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import { toast } from 'sonner';
-import { useUpdateMemberRoleMutation } from '../team/api-slice';
+import { useCreateProjectMutation } from './api-slice';
 
-export function TeamMemberEditModal({
-	member,
-	teamId,
-}: {
-	member: TeamMemberRow;
-	teamId: string;
-}) {
+export function ProjectCreateModal() {
+	const { teamId } = useParams();
 	const [open, setOpen] = useState(false);
-	const [role, setRole] = useState<'admin' | 'editor' | 'viewer'>(
-		member.role === 'owner' ? 'admin' : (member.role as 'admin' | 'editor' | 'viewer')
-	);
-	const [updateRole, { isLoading }] = useUpdateMemberRoleMutation();
-
-	const userId = member.userId._id ?? member.userId.id;
+	const [name, setName] = useState('');
+	const [description, setDescription] = useState('');
+	const [createProject, { isLoading }] = useCreateProjectMutation();
 
 	const handleSubmit = async (e: FormEvent) => {
 		e.preventDefault();
+		if (!name.trim()) {
+			toast.error('Project name is required');
+			return;
+		}
 		try {
-			await updateRole({ teamId, userId, role }).unwrap();
-			toast.success('Role updated');
+			await createProject({
+				name,
+				description,
+				visibility: 'private',
+				teamId: String(teamId),
+			}).unwrap();
+			toast.success('Project created');
+			setName('');
+			setDescription('');
 			setOpen(false);
 		} catch (error: unknown) {
 			const err = error as { data?: { error?: string } };
-			toast.error(err?.data?.error ?? 'Failed to update role');
+			toast.error(err?.data?.error ?? 'Failed to create project');
 		}
 	};
-
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
 				<DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-					<Pencil className="w-4 h-4 mr-2" />
-					Edit Role
+					<Plus className="w-4 h-4 mr-2" />
+					Create Project
 				</DropdownMenuItem>
 			</DialogTrigger>
 
 			<DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
 				<DialogHeader>
-					<DialogTitle>Edit Member Role</DialogTitle>
+					<DialogTitle>Create Project</DialogTitle>
 				</DialogHeader>
 
 				<form onSubmit={handleSubmit} className="space-y-4 mt-4">
-					<div className="space-y-1">
-						<p className="text-sm text-zinc-400">
-							{member.userId.name} ({member.userId.email})
-						</p>
+					<div className="space-y-2">
+						<Label>Project Name</Label>
+						<Input
+							value={name}
+							onChange={(e) => setName(e.target.value)}
+							className="bg-zinc-950 border-zinc-800"
+						/>
 					</div>
 
 					<div className="space-y-2">
-						<Label>Role</Label>
-						<select
-							value={role}
-							onChange={(e) =>
-								setRole(e.target.value as 'admin' | 'editor' | 'viewer')
-							}
-							className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
-						>
-							<option value="viewer">Viewer</option>
-							<option value="editor">Editor</option>
-							<option value="admin">Admin</option>
-						</select>
+						<Label>Description</Label>
+						<Textarea
+							value={description}
+							onChange={(e) => setDescription(e.target.value)}
+							className="bg-zinc-950 border-zinc-800"
+						/>
 					</div>
 
 					<div className="flex justify-end gap-3">
@@ -94,7 +95,7 @@ export function TeamMemberEditModal({
 							disabled={isLoading}
 							className="bg-orange-500 hover:bg-orange-600"
 						>
-							{isLoading ? 'Saving...' : 'Save Changes'}
+							{isLoading ? 'Creating...' : 'Create Project'}
 						</Button>
 					</div>
 				</form>

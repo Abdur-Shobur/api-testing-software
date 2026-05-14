@@ -3,7 +3,7 @@
 import { useGetProjectsQuery } from '@/store/features/project/api-slice';
 import {
 	useGetMyTeamQuery,
-	useInviteTeamMemberMutation,
+	useSendInviteMutation,
 	useRemoveTeamMemberMutation,
 } from '@/store/features/team/api-slice';
 import type { TeamMemberRole, TeamMemberRow } from '@/type';
@@ -35,11 +35,11 @@ export function TeamPage() {
 	const [projectId, setProjectId] = useState('');
 	const { data, isLoading, isError } = useGetMyTeamQuery();
 	const { data: projectsData } = useGetProjectsQuery();
-	const [inviteMember, { isLoading: isInviting }] =
-		useInviteTeamMemberMutation();
+	const [sendInvite, { isLoading: isInviting }] = useSendInviteMutation();
 	const [removeMember, { isLoading: isRemoving }] =
 		useRemoveTeamMemberMutation();
 	const team = data?.data ?? null;
+	const teamId = team?._id ?? team?.id ?? '';
 	const projects = projectsData?.data ?? [];
 
 	useEffect(() => {
@@ -58,19 +58,24 @@ export function TeamPage() {
 			toast.error('Select a project for this invitation');
 			return;
 		}
+		if (!teamId) {
+			toast.error('Team not loaded');
+			return;
+		}
 		try {
-			await inviteMember({ email, role, projectId }).unwrap();
+			await sendInvite({ teamId, email, role, projectId }).unwrap();
 			setEmail('');
-			toast.success('Member added');
+			toast.success('Invite sent');
 		} catch (error: unknown) {
 			const err = error as { data?: { error?: string } };
-			toast.error(err?.data?.error ?? 'Failed to invite member');
+			toast.error(err?.data?.error ?? 'Failed to send invite');
 		}
 	};
 
 	const remove = async (userId: string) => {
+		if (!teamId) return;
 		try {
-			await removeMember(userId).unwrap();
+			await removeMember({ teamId, userId }).unwrap();
 			toast.success('Member removed');
 		} catch {
 			toast.error('Failed to remove member');

@@ -2,13 +2,19 @@ import { Document, model, models, Schema } from 'mongoose';
 
 export interface IProjectSettings extends Document {
 	baseUrl: string;
-	auth: Record<string, unknown>;
+	authorization: Record<string, unknown>;
 }
 
 const ProjectSettingsSchema = new Schema<IProjectSettings>(
 	{
-		baseUrl: { type: String, default: '' },
-		auth: { type: Schema.Types.Mixed, default: {} },
+		baseUrl: {
+			type: String,
+			default: '',
+		},
+		authorization: {
+			type: Schema.Types.Mixed,
+			default: null,
+		},
 	},
 	{
 		timestamps: true,

@@ -33,8 +33,8 @@ export function TestCaseEditModal({
 
 			<DialogContent className="sm:max-w-200 max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>Edit Collection</DialogTitle>
-					<DialogDescription>Edit this Collection.</DialogDescription>
+				<DialogTitle>Edit Test Case</DialogTitle>
+				<DialogDescription>Edit this test case.</DialogDescription>
 				</DialogHeader>
 
 				{open && <FORM setOpen={setOpen} data={data} colId={colId} />}

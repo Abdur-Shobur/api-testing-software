@@ -1,4 +1,4 @@
-import { CollectionTests } from '@/components/view';
+import { TestCaseView } from '@/store/features/test-case/test-case-view';
 
 const projects = {
 	name: 'ABC',
@@ -22,7 +22,7 @@ const projects = {
 const Layout = ({ children }: { children: React.ReactNode }) => {
 	return (
 		<>
-			<CollectionTests />
+			<TestCaseView />
 			{/* DETAIL PANEL */}
 			{children}
 		</>
