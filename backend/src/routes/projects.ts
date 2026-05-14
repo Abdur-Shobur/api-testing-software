@@ -155,11 +155,11 @@ projectsRouter.patch(
 		const project = await Project.findOneAndUpdate(
 			{
 				_id: req.params.projectId,
-				teamId: req.user!.teamId,
 			},
 			update,
 			{ new: true },
 		);
+
 		if (!project) {
 			res.status(404).json({ error: 'Project not found' });
 			return;
@@ -199,15 +199,10 @@ projectsRouter.delete(
 			res.status(400).json({ error: 'invalid projectId' });
 			return;
 		}
-		const restricted = await getRestrictedProjectIdForMember(
-			req.user!.userId,
-			req.user!.teamId,
-			req.user!.teamRole,
-		);
+
 		const result = await Project.deleteOne({
 			_id: req.params.projectId,
 			teamId: req.user!.teamId,
-			...(restricted ? { _id: new Types.ObjectId(restricted) } : {}),
 		});
 		if (result.deletedCount !== 1) {
 			res.status(404).json({ error: 'Project not found' });
